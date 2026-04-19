@@ -1,0 +1,14 @@
+Muestras agrupadas en 12 grupos:
+
+Grupo 1: ['Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno']
+Grupo 2: ['Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno']
+Grupo 3: ['Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno']
+Grupo 4: ['Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno']
+Grupo 5: ['Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina']
+Grupo 6: ['Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina']
+Grupo 7: ['Paracetamol', 'Paracetamol']
+Grupo 8: ['Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol']
+Grupo 9: ['Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol', 'Paracetamol']
+Grupo 10: ['Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Ibuprofeno', 'Ibuprofeno', 'Ibuprofeno']
+Grupo 11: ['Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Ibuprofeno']
+Grupo 12: ['Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Aspirina', 'Ibuprofeno', 'Ibuprofeno', 'Paracetamol']
