@@ -6,7 +6,7 @@
 
 ## 2. System requirements
 
-EspectroApp is written in **Python** and uses libraries such as **PySide6**, **NumPy**, **pandas**, **SciPy**, **scikit-learn**, **Plotly**, **matplotlib**, **pyqtgraph**, and related scientific Python tools. The repository also includes a `requirements.txt` file for dependency installation. :contentReference[oaicite:1]{index=1}
+EspectroApp is written in **Python** and uses libraries such as **PySide6**, **NumPy**, **pandas**, **SciPy**, **scikit-learn**, **Plotly**, **matplotlib**, **pyqtgraph**, and related scientific Python tools. The repository also includes a `requirements.txt` file for dependency installation.
 
 ## 3. Installation
 
