@@ -42,7 +42,6 @@ A mid-level data fusion strategy has also been implemented, but it is still unde
 
 Clone this repository and install the required dependencies:
 
-```bash
 pip install -r requirements.txt
 
 ## Run the application
@@ -53,4 +52,6 @@ If python3 is not available in your system, try:
 
 python src/main.py
 
-For detailed instructions, see the [User Manual](USER_MANUAL.md).
+For detailed usage instructions, see the [User Manual](USER_MANUAL.md).
+
+```bash
