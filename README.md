@@ -1,15 +1,20 @@
 # EspectroApp
 
-EspectroApp is an open-source platform for spectral preprocessing, data fusion and multivariate analysis of FTIR and Raman data.
+Current stable release: **v2.0.0** (English version)  
+Previous development line: **v1.x** (Spanish interface)
+
+EspectroApp is an open-source platform for spectral preprocessing, data fusion, multivariate analysis, and visualization of FTIR and Raman data.
 
 ## Overview
-EspectroApp was developed to integrate spectral preprocessing, low-level data fusion, multivariate analysis and visualization into a single accessible environment. The software is intended for researchers working with vibrational spectroscopy data, especially FTIR and Raman spectra.
+
+EspectroApp was developed to integrate spectral preprocessing, low-level data fusion, multivariate analysis, and visualization into a single accessible environment. The software is intended for researchers working with vibrational spectroscopy data, especially FTIR and Raman spectra.
 
 ## Main features
+
 - Baseline correction
-- Smoothing
+- Spectral smoothing
 - First and second derivatives
-- Normalization
+- Normalization methods
 - Low-level data fusion
 - Principal Component Analysis (PCA)
 - t-distributed Stochastic Neighbor Embedding (t-SNE)
@@ -18,8 +23,9 @@ EspectroApp was developed to integrate spectral preprocessing, low-level data fu
 - Export of plots and processed data
 
 ## Technologies
+
 - Python
-- PyQt
+- PySide6
 - NumPy
 - pandas
 - SciPy
@@ -28,7 +34,16 @@ EspectroApp was developed to integrate spectral preprocessing, low-level data fu
 - matplotlib
 
 ## Installation
+
 Clone this repository and install the required dependencies:
 
 ```bash
 pip install -r requirements.txt
+
+## Run the application
+
+python3 src/main.py
+
+If python3 is not available in your system, try:
+
+python src/main.py
