@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-**EspectroApp** is an open-source platform for spectral preprocessing, multivariate analysis, visualization, and data fusion of vibrational spectroscopy datasets, especially **FTIR** and **Raman** data. The current application provides a graphical interface in English and includes tools for data loading, preprocessing, PCA, t-SNE, HCA, and fusion workflows. :contentReference[oaicite:0]{index=0}
+**EspectroApp** is an open-source platform for spectral preprocessing, multivariate analysis, visualization, and data fusion of vibrational spectroscopy datasets, especially **FTIR** and **Raman** data. The current application provides a graphical interface in English and includes tools for data loading, preprocessing, PCA, t-SNE, HCA, and fusion workflows.
 
 ## 2. System requirements
 
