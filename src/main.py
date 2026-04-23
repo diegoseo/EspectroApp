@@ -1,4 +1,4 @@
-# # PARA ACTIVAR EL ENTORNO VIRTUAL source .venv/bin/activate
+# TO ACTIVATE THE VIRTUAL ENVIRONMENT: source .venv/bin/activate
 
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QPushButton, QMessageBox, QFileDialog, QTableWidget, QTableWidgetItem, QInputDialog, QLabel, QDialog, QLineEdit, QCheckBox, QHBoxLayout, QGroupBox, QComboBox,
@@ -7,10 +7,10 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QIcon, QFont
 from PySide6.QtCore import Qt, QSize, Signal, QTimer
 from functools import partial 
-from hilo import HiloCargarArchivo , HiloGraficarEspectros, HiloMetodosTransformaciones, HiloMetodosReduccion, HiloHca, HiloDataFusion, HiloDataLowFusion, HiloDataLowFusionSinRangoComun, HiloDataMidFusion, HiloDataMidFusionSinRangoComun,HiloGraficarMid # CLASE PERSONALIZADA
-from graficado import GraficarEspectros, GraficarEspectrosAcotados, GraficarEspectrosTipos, GraficarEspectrosAcotadoTipos, graficar_varianza_acumulada
-from funciones import columna_con_menor_filas, calcular_varianza_acumulada
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas  # PARA EL HCA
+from thread import HiloCargarArchivo , HiloGraficarEspectros, HiloMetodosTransformaciones, HiloMetodosReduccion, HiloHca, HiloDataFusion, HiloDataLowFusion, HiloDataLowFusionSinRangoComun, HiloDataMidFusion, HiloDataMidFusionSinRangoComun,HiloGraficarMid # CUSTOM CLASS
+from plotting import GraficarEspectros, GraficarEspectrosAcotados, GraficarEspectrosTipos, GraficarEspectrosAcotadoTipos, graficar_varianza_acumulada
+from functions import columna_con_menor_filas, calcular_varianza_acumulada
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas  
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import QUrl
 import pandas as pd
@@ -26,7 +26,7 @@ import plotly.io as pio
 class MenuPrincipal(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Menú Principal")
+        self.setWindowTitle("Main Menu - EspectroApp")
         self.setMinimumSize(700,600)
         self.setStyleSheet("background-color: #2E2E2E; color: white; font-size: 14px;")
         
@@ -34,77 +34,76 @@ class MenuPrincipal(QWidget):
         layout = QVBoxLayout(content_widget)
         layout.setSpacing(20)
         
-        self.dataframes = [] # lista de df cargados
-        self.nombres_archivos = []  # lista de nombres de Los archivo
-        self.df_final = None  # Inicializamos el df que usaremos siempre
+        self.dataframes = [] # list of loaded DataFrames
+        self.nombres_archivos = []  # list of file names
+        self.df_final = None  # Initialize the DataFrame that will be used throughout
 
-        # Título
-        titulo = QLabel('<img src="icom/microscope.png" width="24" height="24"> Análisis de Espectros')
+        # Title
+        titulo = QLabel('<img src="icom/microscope.png" width="24" height="24"> Spectral Analysis')
         titulo.setAlignment(Qt.AlignCenter)
         titulo.setStyleSheet("font-size: 30px; font-weight: bold; color: white;")
         layout.addWidget(titulo)
 
-        # Separador
-        layout.addWidget(self.separador("Carga y Visualización"))
+        # Separator
+        layout.addWidget(self.separador("Loading and Visualization"))
 
-        layout.addWidget(self.boton("1. Cargar Archivo","icom/cargar_archivo.png", self.abrir_dialogo_archivos))
-        layout.addWidget(self.boton("2. Ver DataFrame", "icom/table.png",self.ver_dataframe))
-        layout.addWidget(self.boton("3. Mostrar Espectros", "icom/espectros.png",self.ver_espectros))
+        layout.addWidget(self.boton("1. Load File","icom/cargar_archivo.png", self.abrir_dialogo_archivos))
+        layout.addWidget(self.boton("2. View DataFrame", "icom/table.png",self.ver_dataframe))
+        layout.addWidget(self.boton("3. Display Spectra", "icom/espectros.png",self.ver_espectros))
 
-        # Separador
-        layout.addWidget(self.separador("Procesamiento"))
+        # Separator
+        layout.addWidget(self.separador("Processing"))
 
-        layout.addWidget(self.boton("4. Procesar Datos","icom/procesar.png",self.arreglar_datos))
-        layout.addWidget(self.boton("5. Reducción de Dimensionalidad", "icom/clustering.png",self.abrir_dialogo_dimensionalidad))
-        layout.addWidget(self.boton("6. Análisis Jerárquico (HCA)","icom/hca.png",self.abrir_dialogo_hca))
+        layout.addWidget(self.boton("4. Process Data","icom/procesar.png",self.arreglar_datos))
+        layout.addWidget(self.boton("5. Dimensionality Reduction", "icom/clustering.png",self.abrir_dialogo_dimensionalidad))
+        layout.addWidget(self.boton("6. Hierarchical Analysis (HCA)","icom/hca.png",self.abrir_dialogo_hca))
 
-        # Separador
-        layout.addWidget(self.separador("Fusión"))
+        # Separator
+        layout.addWidget(self.separador("Fusion"))
 
         layout.addWidget(self.boton("7. Data Fusion","icom/database.png",self.abrir_dialogo_datafusion))
 
         # ----> Scroll Area
         scroll = QScrollArea()
-        scroll.setWidgetResizable(True)   # se ajusta al tamaño
+        scroll.setWidgetResizable(True)   
         scroll.setWidget(content_widget)
 
-        # Layout principal con el scroll
+        # Main layout with the scroll area
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(scroll)
         self.setLayout(main_layout)
         
-    
+            
     def nombre_columna_x_exportacion(self):
-        etiqueta = str(self.etiqueta_x).lower()
+        etiqueta = str(self.etiqueta_x).strip().lower()
 
         if "raman" in etiqueta:
             return "Raman Shift"
 
-        if "onda" in etiqueta or "wavenumber" in etiqueta or "wave number" in etiqueta:
+        if "wavenumber" in etiqueta or "wave number" in etiqueta or "numero de onda" in etiqueta or "número de onda" in etiqueta:
             return "Wavenumber"
 
-        return "Eje X"  
-            
+        return "X Axis"
+                    
         
     def detectar_etiquetas_desde_df(self, df):
         try:
             primera_celda = str(df.iloc[0, 0]).strip().lower()
         except Exception:
-            return "Eje X", "Intensity"
+            return "X Axis", "Intensity"
 
         if "raman shift" in primera_celda:
-            return "Raman shift (cm⁻¹)", "Intensity"
+            return "Raman Shift (cm⁻¹)", "Intensity"
 
-        if "wavenumber" in primera_celda or "wave number" in primera_celda:
+        if "wavenumber" in primera_celda or "wave number" in primera_celda or "numero de onda" in primera_celda or "número de onda" in primera_celda:
             return "Wavenumber (cm⁻¹)", "Intensity"
 
-        if "número de onda" in primera_celda or "numero de onda" in primera_celda:
-            return "Wavenumber (cm⁻¹)", "Intensity"
+        if "x axis" in primera_celda:
+            return "X Axis", "Intensity"
 
-        return "Eje X", "Intensity"
+        return "X Axis", "Intensity"
 
-
-    # GENERAMOS LOS BOTONES Y SUS ESTILOS
+    # GENERATE THE BUTTONS AND THEIR STYLES
     def boton(self, texto, icon_path=None, funcion_click=None):
         boton = QPushButton(texto)
         if icon_path:
@@ -136,24 +135,24 @@ class MenuPrincipal(QWidget):
         self.ventana_opciones_datafusion = VentanaDataFusion(self.dataframes, self.nombres_archivos,self)
         self.ventana_opciones_datafusion.show()
 
-    # GENERAMOS UN TEXTO SEPARADOR PARA EL MENU PRINCIPAL
+    # GENERATE A SEPARATOR TEXT FOR THE MAIN MENU
     def separador(self, titulo):
         label = QLabel(f"⎯⎯⎯ {titulo} ⎯⎯⎯")
         label.setAlignment(Qt.AlignCenter)
         label.setStyleSheet("color: #AAAAAA; font-size: 18px;font-weight: bold;")
         return label
     
-    # PARA LA OPCION DE VISUALIZAR LOS DATAFRAME            
+    # FOR THE DATAFRAME VIEW OPTION        
     def ver_dataframe(self):
         if not self.dataframes:
-            QMessageBox.warning(self, "Sin datos", "Todavía no se ha cargado ningún archivo.")
+            QMessageBox.warning(self, "No data", "No file has been loaded yet.")
             return
 
-        def eliminar_callback(idx): # PARA ELIMINAR UN DATAFRAME
+        def eliminar_callback(idx): # TO DELETE A DATAFRAME
             del self.dataframes[idx]
             del self.nombres_archivos[idx]
 
-        def visualizar_callback(idx): # PARA VISUALIZAR UN DATAFRAME
+        def visualizar_callback(idx): # TO VIEW A DATAFRAME
             df_a_mostrar = self.dataframes[idx]
             self.ventana_tabla = VerDf(df_a_mostrar)
             self.ventana_tabla.show()
@@ -161,7 +160,7 @@ class MenuPrincipal(QWidget):
         ventana = VentanaSeleccionDF(self.dataframes, self.nombres_archivos, eliminar_callback, visualizar_callback)
         ventana.show()
     
-    # Para la Opcion de Procesar Datos
+    # For the Data Processing Option
     def arreglar_datos(self):
         self.ventana_prueba = VentanaTransformaciones(self.dataframes, self.nombres_archivos,self)
         self.ventana_prueba.show()
@@ -170,21 +169,21 @@ class MenuPrincipal(QWidget):
         self.ventana_opciones_hca = VentanaHca(self.dataframes, self.nombres_archivos,self)
         self.ventana_opciones_hca.show()
         
-    # ABRE UNA VENTANA DONDE NOS PERMITE SELECCIONAR UNO O VARIOS ARCHIVOS
+    # OPENS A WINDOW THAT ALLOWS US TO SELECT ONE OR MORE FILES
     def abrir_dialogo_archivos(self):
         rutas, _ = QFileDialog.getOpenFileNames(
             self,
-            "Seleccionar archivos espectrales",
+            "Select spectral files",
             "",
-            "Archivos espectrales (*.csv *.spa *.SPA);;CSV Files (*.csv);;SPA Files (*.spa *.SPA)"
+            "Spectral files (*.csv *.spa *.SPA *.sga *.SGA);;CSV Files (*.csv);;SPA Files (*.spa *.SPA);;SGA Files (*.sga *.SGA)"
         )
         
         if rutas:
             extensiones = [os.path.splitext(r)[1].lower() for r in rutas]
 
-            # Si seleccionó varios .spa, se fusionarán en un solo DataFrame
+            # If multiple .spa files are selected, they will be merged into a single DataFrame.
             if len(rutas) > 1 and all(ext == ".spa" for ext in extensiones):
-                nombre_fusion = f"Fusion SPA ({len(rutas)} archivos)"
+                nombre_fusion = f"SPA Fusion ({len(rutas)} files)"
                 self.nombres_archivos.append(nombre_fusion)
             else:
                 self.nombres_archivos.extend(rutas)
@@ -192,40 +191,40 @@ class MenuPrincipal(QWidget):
             self.hilo = HiloCargarArchivo(rutas)
             self.hilo.archivo_cargado.connect(self.procesar_archivos)
             self.hilo.start()
-        else: # Si no se seleccionaron archivos, muestra advertencia.
-            QMessageBox.warning(self, "Sin selección", "No se seleccionaron archivos.")
+        else: # If no files were selected, display a warning.
+            QMessageBox.warning(self, "No selection", "No files were selected.")
             
             
-    # ESTA FUNCION SE EJECUTA CUANDO TERMINA EL HILO. GUARDA LOS DATAFRAME Y MUESTRA UN MENSAJE DE EXITO.
+    # THIS FUNCTION RUNS WHEN THE THREAD FINISHES. IT STORES THE DATAFRAMES AND DISPLAYS A SUCCESS MESSAGE.
     def procesar_archivos(self,df):
         self.df_original = df.copy()
         self.df = df
-        self.df_final = df.copy()  # por defecto, este es el df final si no hay corrección
-        self.dataframe = self.df_final # seria el puntero
+        self.df_final = df.copy() 
+        self.dataframe = self.df_final 
         self.dataframes.append(df) 
         self.index_actual = len(self.dataframes) - 1
         col,fil = columna_con_menor_filas(df)
         if len(df) != fil:
-            self.eliminar_filas = ArreglarDf(df.copy())  # le pasamos el df
+            self.eliminar_filas = ArreglarDf(df.copy()) 
             self.eliminar_filas.df_modificado.connect(self.recibir_df_modificado)
             self.eliminar_filas.show()
         else:
-            print("no hay que arreglar nada, directo graficar los espectros")
+            print("No preprocessing is required; the spectra can be plotted directly.")
 
     def recibir_df_modificado(self, df_nuevo):
         self.df = df_nuevo
         self.df_final = df_nuevo
         self.dataframe = df_nuevo
-        # Actualizamos el DataFrame corregido dentro de la lista
+        # Update the corrected DataFrame within the list
         if hasattr(self, "index_actual") and self.index_actual is not None:
             self.dataframes[self.index_actual] = df_nuevo
 
-    def funcion_para_graficar_uso(self, nombre_df, tipo_accion): # ACA ES DONDE LLAMAREMOS A LA FUNCION CON LA OPCION QUE EL USUARIO SELECCIONO
+    def funcion_para_graficar_uso(self, nombre_df, tipo_accion): # THIS IS WHERE WE WILL CALL THE FUNCTION CORRESPONDING TO THE OPTION SELECTED BY THE USER
         try:
-            idx = self.nombres_archivos.index(nombre_df) # BUSCAMOS EL INDICE EN EL QUE SE ENCUENTRA EL ARCHIVO DENTRO DEL DICCIONARIO dataframes
-            df = self.dataframes[idx] # Una vez encontrado ese df con su indice procedemos a graficarlos
+            idx = self.nombres_archivos.index(nombre_df) # FIND THE INDEX OF THE FILE WITHIN THE `dataframes` DICTIONARY
+            df = self.dataframes[idx] # Once the DataFrame and its index have been found, we proceed to plot it
             
-            # Guardamos las copias originales
+            # Store the original copies
             self.df_completo = df.copy()
             self.df_original = df.copy()
             self.df_final = df.copy()
@@ -234,11 +233,11 @@ class MenuPrincipal(QWidget):
             
             self.raman_shift = self.df_completo.iloc[1:, 0].reset_index(drop=True)
 
-            # Obtenemos los tipos únicos desde fila 0
+            # Get the unique types from row 0
             tipos = self.df_completo.iloc[0, 1:]
             tipos_nombres = tipos.unique()
 
-            # Asignamos colores automáticamente
+            # Assign colors automatically
             cmap = plt.cm.Spectral
             colores = [cmap(i) for i in np.linspace(0, 1, len(tipos_nombres))]
             self.asignacion_colores = {
@@ -249,7 +248,7 @@ class MenuPrincipal(QWidget):
             self.procesar_opcion_grafico(tipo_accion)
 
         except Exception as e:
-            QMessageBox.critical(self, "Error al procesar", f"Ocurrió un error:\n{str(e)}")
+            QMessageBox.critical(self, "Processing error", f"An error occurred:\n{str(e)}")
         
          
     def ver_espectros(self, df=None):
@@ -259,7 +258,7 @@ class MenuPrincipal(QWidget):
     
     def procesar_opcion_grafico(self, opcion):
         if opcion.startswith("1"):
-            df_a_graficar = self.df_completo.reset_index(drop=True)  # df_a_graficar debe incluir la fila 0 (tipos) y todas las columnas
+            df_a_graficar = self.df_completo.reset_index(drop=True)  # df_a_graficar must include row 0 (types) and all columns
 
             self.hilo_graficar = HiloGraficarEspectros(df_a_graficar, self.raman_shift, self.asignacion_colores)
             self.hilo_graficar.graficar_signal.connect(self.mostrar_grafico)
@@ -336,9 +335,8 @@ class MenuPrincipal(QWidget):
             self.arreglar_df = GenerarCsv(df_acotado)
             self.arreglar_df.generar_csv()
         elif opcion.startswith("8"):
-            dialogo = DialogoRangoRamanTipoAcotado() #ACA ES DONDE LLAMO A LA INTERFAZ PARA QUE EL USUARIO CARGUE LOS VALORES
+            dialogo = DialogoRangoRamanTipoAcotado()
             if dialogo.exec():
-                # Y ACA ES DONDE ALMACENO LO QUE RETORNA DE LA INTERFAZ
                 self.tipo_graficar = dialogo.tipo_graficar
                 self.min_val = dialogo.valor_min
                 self.max_val = dialogo.valor_max
@@ -403,19 +401,12 @@ class MenuPrincipal(QWidget):
         )
         self.grafico_pg.show()
 
-    def descargar_csv_acotado(self, datos, raman, val_min, val_max, df_final, nombre_eje_x="Eje X"):
-        nueva_cabecera = datos.iloc[0]             # Fila 0 tiene los tipos
-        datos = datos[1:]                          # Eliminar esa fila del DataFrame
-        datos.columns = nueva_cabecera             # Asignar como cabecera
-        datos.reset_index(drop=True, inplace=True) # Resetear el índice
-        datos = datos.iloc[:, 1:]
+    def descargar_csv_acotado(self, datos, raman, val_min, val_max, df_final, nombre_eje_x="X Axis"):
+        datos = normalizar_df_visual(datos)
 
-        df_aux = datos.to_numpy()
-        cabecera_np = df_final.iloc[0, 1:].to_numpy()
-        intensidades_np = df_aux[:, :]
-
-        raman = raman[1:].to_numpy().astype(float)
-        intensidades = intensidades_np.astype(float)
+        raman = pd.to_numeric(datos.iloc[:, 0], errors="coerce").to_numpy()
+        intensidades = datos.iloc[:, 1:].apply(pd.to_numeric, errors="coerce").to_numpy()
+        cabecera_np = list(datos.columns[1:])
 
         indices_acotados = (raman >= val_min) & (raman <= val_max)
         raman_acotado = raman[indices_acotados]
@@ -423,60 +414,35 @@ class MenuPrincipal(QWidget):
 
         df_acotado = pd.DataFrame(
             data=np.column_stack([raman_acotado, intensidades_acotadas]),
-            columns=[nombre_eje_x] + list(cabecera_np)
+            columns=[nombre_eje_x] + cabecera_np
         )
 
         return df_acotado
 
+    def descargar_csv_tipo(self, datos, raman, df_final, tipo_graficar, nombre_eje_x="X Axis"):
+        datos = normalizar_df_visual(datos)
 
+        raman = pd.to_numeric(datos.iloc[:, 0], errors="coerce").to_numpy()
+        datos_sin_x = datos.iloc[:, 1:].copy()
 
-    def descargar_csv_tipo(self, datos, raman, df_final, tipo_graficar, nombre_eje_x="Eje X"):
-        nueva_cabecera = datos.iloc[0]
-        datos = datos[1:]
-        datos.columns = nueva_cabecera
-        datos.reset_index(drop=True, inplace=True)
-        datos = datos.iloc[:, 1:]
-
-        columnas_eliminar = []
-        raman = raman[1:].to_numpy().astype(float)
-
-        for col in datos.columns:
-            if col != tipo_graficar:
-                columnas_eliminar.append(col)
-
-        datos_filtrados = datos.drop(columns=columnas_eliminar)
+        columnas_conservar = [col for col in datos_sin_x.columns if col == tipo_graficar]
+        datos_filtrados = datos_sin_x[columnas_conservar].copy()
 
         datos_filtrados.insert(0, nombre_eje_x, raman)
 
         return datos_filtrados
-    
+            
 
-    def descargar_csv_tipo_acotado(self, datos, raman, df_final, tipo_graficar, min_val, max_val, nombre_eje_x="Eje X"):
+    def descargar_csv_tipo_acotado(self, datos, raman, df_final, tipo_graficar, min_val, max_val, nombre_eje_x="X Axis"):
+        datos = normalizar_df_visual(datos)
 
-        nueva_cabecera = datos.iloc[0]             # Fila 0 tiene los tipos
-        datos = datos[1:]                          # Eliminar esa fila del DataFrame
-        datos.columns = nueva_cabecera             # Asignar como cabecera
-        datos.reset_index(drop=True, inplace=True) # Resetear el índice
-        datos = datos.iloc[:, 1:]
+        raman = pd.to_numeric(datos.iloc[:, 0], errors="coerce").to_numpy()
+        datos_sin_x = datos.iloc[:, 1:].copy()
 
-        columnas_eliminar = []
-        raman = raman[1:].to_numpy().astype(float)
+        columnas_conservar = [col for col in datos_sin_x.columns if col == tipo_graficar]
+        datos_filtrados = datos_sin_x[columnas_conservar].copy()
 
-        for col in datos.columns:
-            if col != tipo_graficar:
-                columnas_eliminar.append(col)
-
-        datos_filtrados = datos.drop(columns=columnas_eliminar)
-
-        datos_filtrados.insert(0, nombre_eje_x, raman)
-        datos_filtrados = datos_filtrados.astype(object)
-
-        df_aux = datos_filtrados.iloc[:, 1:].to_numpy()
-        datos_filtrados.iloc[0, 1:] = tipo_graficar
-        cabecera_np = datos_filtrados.iloc[0, 1:].to_numpy()
-
-        intensidades_np = df_aux[:, :]
-        intensidades = intensidades_np.astype(float)
+        intensidades = datos_filtrados.apply(pd.to_numeric, errors="coerce").to_numpy()
 
         indices_acotados = (raman >= min_val) & (raman <= max_val)
         raman_acotado = raman[indices_acotados]
@@ -484,12 +450,12 @@ class MenuPrincipal(QWidget):
 
         datos_acotado_tipo = pd.DataFrame(
             data=np.column_stack([raman_acotado, intensidades_acotadas]),
-            columns=[nombre_eje_x] + list(cabecera_np[:])
+            columns=[nombre_eje_x] + list(datos_filtrados.columns)
         )
 
         return datos_acotado_tipo
-
-    # Método auxiliar para futuras opciones del menú.
+    
+    
     def ejecutar_opcion(self, texto):
         if texto == "17. Salir":
             self.close()
@@ -497,9 +463,6 @@ class MenuPrincipal(QWidget):
             QMessageBox.information(self, "Opción seleccionada", f"Elegiste: {texto}")
 
 
-
-
-# CLASE PARA LOS ESTILOS DE LA VENTANA EMERGEENTE AL DAR CLICK EN VER DATAFRAME
 class VentanaSeleccionDF(QWidget):
     def __init__(self, dataframes, nombres_archivos, eliminar_callback, visualizar_callback):
         super().__init__()
@@ -508,7 +471,7 @@ class VentanaSeleccionDF(QWidget):
         self.eliminar_callback = eliminar_callback
         self.visualizar_callback = visualizar_callback
 
-        self.setWindowTitle("Visualizar DataFrames")
+        self.setWindowTitle("View DataFrames")
         self.setMinimumSize(800, 400)
         self.setStyleSheet("""
             QWidget {
@@ -541,7 +504,6 @@ class VentanaSeleccionDF(QWidget):
             layout_grupo.setSpacing(10)
             layout_grupo.setContentsMargins(10, 10, 10, 10)
 
-            # Para las Etiquetas
             label = QLabel(os.path.basename(nombre))
             label.setStyleSheet("""
                 font-size: 18px; font-weight: bold; background-color: #014f86; 
@@ -551,7 +513,7 @@ class VentanaSeleccionDF(QWidget):
 
             n_filas, n_columnas = df.shape
             n_nulos = df.isnull().sum().sum()
-            info = QLabel(f"{n_filas} filas × {n_columnas} columnas | Nulos: {n_nulos}")
+            info = QLabel(f"{n_filas} rows × {n_columnas} columns | Null values {n_nulos}")
             info.setStyleSheet("""
                 font-size: 14px; color: lightgray; background-color: #014f86;
                 padding: 6px 12px; border-radius: 4px;
@@ -564,11 +526,10 @@ class VentanaSeleccionDF(QWidget):
             info_layout.addWidget(label)
             info_layout.addWidget(info)
 
-            # Para el boton Ver
             boton_ver = QPushButton()
             boton_ver.setIcon(QIcon("icom/view.png"))
             boton_ver.setIconSize(QSize(34, 34))
-            boton_ver.setToolTip("Visualizar DataFrame")
+            boton_ver.setToolTip("View DataFrames")
             boton_ver.setStyleSheet("""
                 QPushButton {
                     border: none;
@@ -583,11 +544,10 @@ class VentanaSeleccionDF(QWidget):
             boton_ver.setFixedSize(36, 36)
             boton_ver.clicked.connect(partial(self.visualizar_df, idx))
 
-            # Para el boton eliminar
             boton_borrar = QPushButton()
             boton_borrar.setIcon(QIcon("icom/delete.png"))
             boton_borrar.setIconSize(QSize(34, 34))
-            boton_borrar.setToolTip("Eliminar DataFrame")
+            boton_borrar.setToolTip("Delete DataFrame")
             boton_borrar.setStyleSheet("""
                 QPushButton {
                     border: none;
@@ -618,22 +578,43 @@ class VentanaSeleccionDF(QWidget):
         scroll.setWidget(contenedor_scroll)
         layout_principal.addWidget(scroll)
         self.setLayout(layout_principal)
-    # FUNCION QUE ELIMINA EL DF
+        
+    # FUNCTION THAT DELETES THE DATAFRAME
     def eliminar_df(self, indice):
         self.eliminar_callback(indice)
         self.close()
 
-   # FUNSION PARA VER LOS DF
+   # FUNCTION TO VIEW THE DATAFRAMES
     def visualizar_df(self, indice):
         self.visualizar_callback(indice)
         self.close()
         
-# ArreglarDf SE UTILIZA CUANDO LOS DATAFRAME TIENEN VALORES NULOS(NaN)
+        
+        
+        
+def normalizar_df_visual(df):
+    df_out = df.copy()
+
+    try:
+        primera_fila = df_out.iloc[0].astype(str).tolist()
+        cols = [str(c) for c in df_out.columns]
+        esperadas = [str(i) for i in range(len(df_out.columns))]
+
+        if cols == esperadas:
+            df_out = df_out[1:].copy()
+            df_out.columns = primera_fila
+            df_out.reset_index(drop=True, inplace=True)
+
+        return df_out
+    except Exception:
+        return df.copy()        
+        
+# FixDataFrame IS USED WHEN THE DATAFRAMES CONTAIN NULL VALUES (NaN)
 class ArreglarDf(QWidget):
     df_modificado = Signal(object)
     def __init__(self, df):
         super().__init__()
-        self.setWindowTitle("🛠 Arreglar DataFrame")
+        self.setWindowTitle("🛠 Fix DataFrame")
         self.resize(600, 500)
         self.setStyleSheet("background-color: #2E2E2E; color: white;")
 
@@ -644,12 +625,11 @@ class ArreglarDf(QWidget):
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignTop)
 
-        titulo = QLabel("Modificar DataFrame")
+        titulo = QLabel("Modify DataFrame")
         titulo.setFont(QFont("Arial", 15, QFont.Bold))
         titulo.setAlignment(Qt.AlignCenter)
         layout.addWidget(titulo)
 
-        # Grupo de botones
         grupo_botones = QGroupBox()
         grupo_botones.setStyleSheet("""
             QGroupBox {
@@ -662,12 +642,12 @@ class ArreglarDf(QWidget):
         botones_layout = QVBoxLayout(grupo_botones)
         botones_layout.setSpacing(12)
 
-        self.boton_fila = QPushButton("Eliminar todas las filas hasta igualar la menor")
-        self.boton_col = QPushButton("Eliminar la columna con menor número de filas")
-        self.boton_ver = QPushButton("Ver DataFrame actual")
-        self.boton_volver = QPushButton("Volver al estado anterior")
-        self.boton_csv = QPushButton("Generar .CSV")
-        self.boton_salir = QPushButton("Salir")
+        self.boton_fila = QPushButton("Remove rows from all DataFrames until they match the smallest one")
+        self.boton_col = QPushButton("Delete the column with the fewest rows")
+        self.boton_ver = QPushButton("View current DataFrame")
+        self.boton_volver = QPushButton("Restore previous state")
+        self.boton_csv = QPushButton("Generate .CSV")
+        self.boton_salir = QPushButton("Exit")
 
         for b in [self.boton_fila, self.boton_col, self.boton_ver, self.boton_volver, self.boton_csv, self.boton_salir]:
             b.setStyleSheet("""
@@ -686,7 +666,6 @@ class ArreglarDf(QWidget):
 
         layout.addWidget(grupo_botones)
 
-        # Conexiones
         self.boton_fila.clicked.connect(self.del_filas)
         self.boton_col.clicked.connect(self.del_col)
         self.boton_ver.clicked.connect(self.ver_df)
@@ -694,86 +673,88 @@ class ArreglarDf(QWidget):
         self.boton_csv.clicked.connect(self.gen_csv)
         self.boton_salir.clicked.connect(self.salir)
 
-    # ELIMINAMOS LAS FILAS 
     def del_filas(self):
         self.pila.append(self.df.copy())
-        menor_cant_filas = self.df.dropna().shape[0] # Buscamos la columna con menor cantidad de intensidades
-        df_truncado = self.df.iloc[:menor_cant_filas] # Hacemos los cortes para igualar las columnas
+        menor_cant_filas = self.df.dropna().shape[0] # We look for the column with the smallest number of intensity values
+        df_truncado = self.df.iloc[:menor_cant_filas] # We trim the data to make the columns match
         self.df = df_truncado
 
-    # ELIMINAMOS LAS COLUMNAS
+    # WE DELETE THE COLUMNS
     def del_col(self):
         self.pila.append(self.df.copy())
-        col ,_ = columna_con_menor_filas(self.df) # EL _ ES POR QUE LA FUNCION RETORNA DOS VALORES PERO SOLO NECESITAMOS EL COL
+        col ,_ = columna_con_menor_filas(self.df) # THE _ IS USED BECAUSE THE FUNCTION RETURNS TWO VALUES, BUT WE ONLY NEED THE COLUMN
         self.df.drop(columns=[col], inplace=True)
         print(self.df)
 
-    # OPCION PARA VER EL DF
+    # OPTION TO VIEW THE DATAFRAME
     def ver_df(self):
         self.ventana_tabla = VerDf(self.df)
         self.ventana_tabla.show()
 
-    # OPCION PARA VOLVER AL ESTADO ANTERIOR EN CASO DE QUERER RECUPERAR LA/S FILAS/COLUMNAS ELIMINADAS
+    # OPTION TO RESTORE THE PREVIOUS STATE IN CASE YOU WANT TO RECOVER THE DELETED ROW(S)/COLUMN(S)
     def volver_estado(self):
         if len(self.pila) > 1 :
-            # Recuperar el último estado del DataFrame
+            # Retrieve the previous state of the DataFrame
             self.df = self.pila.pop()
-            print("Se ha revertido al estado anterior.")
+            print("The previous state has been restored.")
         else:
-            print("No hay acciones para deshacer.")
+            print("There are no actions to undo.")
 
-    # GENERAMOS UN .CSV 
+    # GENERATE A .CSV 
     def gen_csv(self):
         dialogo = DialogoNombreArchivo()
         if dialogo.exec():
             nombre = dialogo.obtener_nombre()
             if nombre:
-                if not nombre.endswith(".csv"): # Aseguramos la extensión .csv
+                if not nombre.endswith(".csv"):  # Ensure .csv extension
                     nombre += ".csv"
                 try:
-                    self.df.to_csv(nombre, index=False, header=0)
-                    print(f"Archivo guardado como: {nombre}")
+                    df_exportar = normalizar_df_visual(self.df)
+                    df_exportar.to_csv(nombre, index=False)
+                    print(f"File saved as: {nombre}")
                 except Exception as e:
-                    print(f"Error al guardar el archivo: {e}")
+                    print(f"Error saving the file: {e}")
             else:
-                print("Nombre de archivo vacío.")
+                print("Empty file name.")
         else:
-            print("Guardado cancelado por el usuario.")
-
-    # AL SALIR EMITE EL DF NUEVO A PROCESAR ARCHIVO(SERIA COMO EL RETURN)
+            print("Save canceled by the user.")
+            
+    # WHEN EXITING, IT EMITS THE NEW DATAFRAME TO BE PROCESSED (IT WORKS LIKE A RETURN)
     def salir(self): 
         self.df_modificado.emit(self.df)
         self.close()
     
 
-
-class VerDf(QWidget): # si hago con hilos puedo hacer que se actualice el df sin tener que cerrar para visualizar el actualizado (mejoras para el futuro)
+    
+class VerDf(QWidget):
     def __init__(self, df):
         super().__init__()
-        self.setWindowTitle("Vista del DataFrame")
+        self.setWindowTitle("DataFrame View")
         self.resize(800, 800)
+
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignTop)
         self.setLayout(layout)
 
-        tabla = QTableWidget()
-        tabla.setRowCount(len(df))
-        tabla.setColumnCount(len(df.columns))
-        tabla.setHorizontalHeaderLabels(df.columns.astype(str))
+        df_mostrar = normalizar_df_visual(df)
 
-        for i in range(len(df)):
-            for j in range(len(df.columns)):
-                valor = str(df.iat[i, j])
+        tabla = QTableWidget()
+        tabla.setRowCount(len(df_mostrar))
+        tabla.setColumnCount(len(df_mostrar.columns))
+        tabla.setHorizontalHeaderLabels([str(c) for c in df_mostrar.columns])
+
+        for i in range(len(df_mostrar)):
+            for j in range(len(df_mostrar.columns)):
+                valor = str(df_mostrar.iat[i, j])
                 tabla.setItem(i, j, QTableWidgetItem(valor))
 
         layout.addWidget(tabla)
 
 
-
 class DialogoNombreArchivo(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Guardar CSV")
+        self.setWindowTitle("Save CSV")
         self.setMinimumWidth(400)
 
         self.setStyleSheet("""
@@ -814,15 +795,15 @@ class DialogoNombreArchivo(QDialog):
         """)
 
         layout = QVBoxLayout()
-        self.label = QLabel("Nombre del archivo:")
+        self.label = QLabel("File name:")
         self.input = QLineEdit()
         layout.addWidget(self.label)
         layout.addWidget(self.input)
 
         botones = QHBoxLayout()
-        self.boton_cancelar = QPushButton("Cancelar")
+        self.boton_cancelar = QPushButton("Cancel")
         self.boton_cancelar.setObjectName("boton_cancelar")
-        self.boton_aceptar = QPushButton("Aceptar")
+        self.boton_aceptar = QPushButton("Accept")
         self.boton_aceptar.setObjectName("boton_aceptar")
         self.boton_cancelar.clicked.connect(self.reject)
         self.boton_aceptar.clicked.connect(self.accept)
@@ -876,17 +857,17 @@ class DialogoRangoRaman(QDialog):
             }
         """)
 
-        self.label_min = QLabel("Ingrese valor mínimo de Raman Shift:")
+        self.label_min = QLabel("Enter the minimum value:")
         self.input_min = QLineEdit()
         layout.addWidget(self.label_min)
         layout.addWidget(self.input_min)
 
-        self.label_max = QLabel("Ingrese valor máximo de Raman Shift:")
+        self.label_max = QLabel("Enter the maximum value:")
         self.input_max = QLineEdit()
         layout.addWidget(self.label_max)
         layout.addWidget(self.input_max)
 
-        self.boton_aceptar = QPushButton("Aceptar")
+        self.boton_aceptar = QPushButton("Accept")
         self.boton_aceptar.clicked.connect(self.validar_y_enviar)
         layout.addWidget(self.boton_aceptar)
 
@@ -901,24 +882,24 @@ class DialogoRangoRaman(QDialog):
             self.valor_max = float(self.input_max.text())
 
             if self.valor_min >= self.valor_max:
-                raise ValueError("El mínimo debe ser menor al máximo.")
+                raise ValueError("The minimum value must be less than the maximum value.")
 
             self.accept()
         except ValueError as e:
-            QMessageBox.warning(self, "Error", f"Entrada inválida: {e}")
+            QMessageBox.warning(self, "Error", f"Invalid input: {e}")
 
 
 
 class DialogoRangoRamanTipo(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Tipos para Graficar")
+        self.setWindowTitle("Plot Types")
         self.setMinimumWidth(350)
 
         layout = QVBoxLayout()
 
         # Etiqueta
-        self.label_min = QLabel("Ingrese el tipo que desea graficar:")
+        self.label_min = QLabel("Enter the type you want to plot:")
         self.label_min.setStyleSheet("""
             QLabel {
                 color: white;
@@ -942,7 +923,7 @@ class DialogoRangoRamanTipo(QDialog):
         """)
 
         # Botón
-        self.boton_aceptar = QPushButton("Aceptar")
+        self.boton_aceptar = QPushButton("Accept")
         self.boton_aceptar.setFixedHeight(36)
         self.boton_aceptar.setStyleSheet("""
             QPushButton {
@@ -977,7 +958,7 @@ class DialogoRangoRamanTipo(QDialog):
 class DialogoRangoRamanTipoAcotado(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Tipos para Graficar")
+        self.setWindowTitle("Plot Types")
         self.setMinimumWidth(350)
 
         layout = QVBoxLayout()
@@ -1014,22 +995,22 @@ class DialogoRangoRamanTipoAcotado(QDialog):
             }
         """)
 
-        self.label_tipo = QLabel("Ingrese el tipo que desea graficar:")
+        self.label_tipo = QLabel("Enter the type you want to plot.:")
         self.input_tipo = QLineEdit()
         layout.addWidget(self.label_tipo)
         layout.addWidget(self.input_tipo)
 
-        self.label_min = QLabel("Ingrese valor mínimo de Raman Shift:")
+        self.label_min = QLabel("Enter the minimum value:")
         self.input_min = QLineEdit()
         layout.addWidget(self.label_min)
         layout.addWidget(self.input_min)
 
-        self.label_max = QLabel("Ingrese valor máximo de Raman Shift:")
+        self.label_max = QLabel("Enter the maximum value:")
         self.input_max = QLineEdit()
         layout.addWidget(self.label_max)
         layout.addWidget(self.input_max)
 
-        self.boton_aceptar = QPushButton("Aceptar")
+        self.boton_aceptar = QPushButton("Accept")
         self.boton_aceptar.clicked.connect(self.validar_y_enviar)
         layout.addWidget(self.boton_aceptar)
 
@@ -1045,19 +1026,19 @@ class DialogoRangoRamanTipoAcotado(QDialog):
             self.valor_max = float(self.input_max.text())
 
             if self.valor_min >= self.valor_max:
-                raise ValueError("El mínimo debe ser menor al máximo.")
+                raise ValueError("The minimum value must be less than the maximum value.")
 
             self.accept()
         except ValueError as e:
-            QMessageBox.warning(self, "Error", f"Entrada inválida: {e}")
+            QMessageBox.warning(self, "Error", f"Invalid input: {e}")
 
 
 class GenerarCsv(QWidget):
     def __init__(self, df):
         super().__init__()
-        self.setWindowTitle("Arreglar DataFrame")
+        self.setWindowTitle("Fix DataFrame")
         self.resize(300, 150)
-        self.df = df  # Guardamos el DataFrame original
+        self.df = df 
         self.layout = QVBoxLayout()
         self.layout.setAlignment(Qt.AlignTop)
         self.setLayout(self.layout)
@@ -1071,56 +1052,54 @@ class GenerarCsv(QWidget):
 
             try:
                 self.df.to_csv(nombre, index=False, header=True)
-                print(f"Archivo guardado como: {nombre}")
+                print(f"File saved as: {nombre}")
             except Exception as e:
-                print(f"Error al guardar el archivo: {e}")
+                print(f"Error saving the file:{e}")
         else:
-            print("Guardado cancelado por el usuario.")
+            print("Save canceled by the user.")
 
 
 
-# CLASE PARA LA INTERFAZ DE LA OPCION DE VER ESPECTRO/DESCARGAR .CSV
+# CLASS FOR THE INTERFACE OF THE VIEW SPECTRA / DOWNLOAD .CSV OPTION
 class VentanaSeleccionArchivoMetodo(QWidget):
     
-    seleccion_confirmada = Signal(str, str)  # Emitirá (nombre_archivo, tipo_accion)
+    seleccion_confirmada = Signal(str, str)  
 
     def __init__(self, nombres_archivos):
         super().__init__()
 
-        self.setWindowTitle("Mostrar espectros o exportar CSV")
+        self.setWindowTitle("Display spectra or export CSV")
         self.setFixedSize(500, 800)
         layout_principal = QVBoxLayout()
         layout_principal.setAlignment(Qt.AlignTop)
         self.setLayout(layout_principal)
 
-        # ComboBox para elegir el archivo CSV
         self.combo_archivo = QComboBox()
-        self.rutas_completas = nombres_archivos  # Guardamos las rutas originales
+        self.rutas_completas = nombres_archivos 
         nombres_visibles = [os.path.basename(path) for path in nombres_archivos]
         self.combo_archivo.addItems(nombres_visibles)
-        label_archivo = QLabel('<img src="icom/cargar_archivo.png" width="24" height="15"> Elegí un archivo:')
+        label_archivo = QLabel('<img src="icom/cargar_archivo.png" width="24" height="15"> Choose a file:')
         label_archivo.setStyleSheet("font-size: 14px; font-weight: bold; color: white;")
         layout_principal.addWidget(label_archivo)
         layout_principal.addWidget(self.combo_archivo)
 
         
-        self.label_accion = QLabel("Selecciona una opción:")
+        self.label_accion = QLabel("Select an option:")
         self.label_accion.setStyleSheet("font-size: 14px; font-weight: bold;color: white;")
         layout_principal.addWidget(self.label_accion)
 
-        # Agrupar botones
         self.grupo_botones = QButtonGroup(self)
         self.botones_accion = []
 
         opciones = [
-            "1. Gráfico completo",
-            "2. Gráfico acotado",
-            "3. Gráfico por tipo",
-            "4. Gráfico acotado por tipo",
-            "5. Descargar .csv",
-            "6. Descargar .csv acotado",
-            "7. Descargar .csv por tipo",
-            "8. Descargar .csv acotado por tipo"
+                "1. Full plot",
+                "2. Limited-range plot",
+                "3. Plot by type",
+                "4. Limited-range plot by type",
+                "5. Download .csv",
+                "6. Download limited-range .csv",
+                "7. Download .csv by type",
+                "8. Download limited-range .csv by type"
         ]
 
         for i, texto in enumerate(opciones):
@@ -1132,11 +1111,11 @@ class VentanaSeleccionArchivoMetodo(QWidget):
 
         # Botones OK / Cancel
         layout_botones = QHBoxLayout()
-        boton_cancelar = QPushButton("Cancelar")
+        boton_cancelar = QPushButton("Cancel")
         boton_cancelar.setObjectName("cancel")
         boton_cancelar.clicked.connect(self.close)
 
-        boton_ok = QPushButton("Aceptar")
+        boton_ok = QPushButton("Accept")
         boton_ok.clicked.connect(self.confirmar)
         
         layout_botones.addWidget(boton_ok)
@@ -1219,12 +1198,11 @@ class VentanaTransformaciones(QWidget):
     def __init__(self, lista_df, nombres_archivos,menu_principal):
         super().__init__()
         self.menu_principal = menu_principal
-        self.setWindowTitle("Opciones de Transformación")
+        self.setWindowTitle("Transformation Options")
         self.resize(600, 400)
-        self.lista_df = lista_df.copy() # SI O SI HAY QUE HACER ESTA LINEA POR QUE SI NO SE PONE EL SELF ENTONCES LISTA_DF SOLO SE PODRA USAR EN ESTE METODO Y NO EN OTRO DEF
-        self.nombres_archivos = nombres_archivos # SI O SI HAY QUE HACER ESTA LINEA POR QUE SI NO SE PONE EL SELF ENTONCES NOMBRES_ARCHIVOS SOLO SE PODRA USAR EN ESTE METODO Y NO EN OTRO DEF
-        self.df = None # recien cuando el usuario seleccione el df deseado se le asignara
-        
+        self.lista_df = lista_df.copy()  # THIS LINE IS ABSOLUTELY NECESSARY BECAUSE IF self IS NOT USED, lista_df CAN ONLY BE USED INSIDE THIS METHOD AND NOT IN ANOTHER def
+        self.nombres_archivos = nombres_archivos  # THIS LINE IS ABSOLUTELY NECESSARY BECAUSE IF self IS NOT USED, nombres_archivos CAN ONLY BE USED INSIDE THIS METHOD AND NOT IN ANOTHER def
+        self.df = None  # it will only be assigned once the user selects the desired DataFrame
         
         self.setStyleSheet("""
             QWidget {
@@ -1300,19 +1278,17 @@ class VentanaTransformaciones(QWidget):
             }
         """)
         self.selector_df = QComboBox()
-        opciones = [os.path.basename(nombre) for nombre in self.nombres_archivos] # PARA QUE APAREZCA EL NOMBRE DE LOS ARCHIVO QUE SE QUIERE TRANSFORMAR
+        opciones = [os.path.basename(nombre) for nombre in self.nombres_archivos] 
         for nombre in opciones:
             self.selector_df.addItem(nombre)
 
         self.selector_df.currentIndexChanged.connect(self.seleccionar_df)
-        self.seleccionar_df(0)  # Selecciona automáticamente el primer df, no llama a al metodo seleccionar_df cuando solo hay un archivo por que currentIndexChanged solo se dispara cuando el usuario cambia manualmente el índice por lo que hay que asignar manualmente el df cuando solo hay uno
+        self.seleccionar_df(0)  
 
-        # Crear un contenedor para la normalización
-        self.grupo_normalizar = QGroupBox("Normalización Media")
-        self.grupo_normalizar.setCheckable(True)  # Activa/Desactiva todo el grupo
-        self.grupo_normalizar.setChecked(False)   # Inicialmente desactivado
+        self.grupo_normalizar = QGroupBox("Mean Normalization")
+        self.grupo_normalizar.setCheckable(True)  
+        self.grupo_normalizar.setChecked(False)   
 
-        # ComboBox para elegir método
         self.combo_normalizar = QComboBox()
         self.combo_normalizar.addItems([
             "Standardize u=0, v2=1",
@@ -1326,15 +1302,13 @@ class VentanaTransformaciones(QWidget):
         layout_normalizar.addWidget(self.combo_normalizar)
         self.grupo_normalizar.setLayout(layout_normalizar)
 
-        # Checkboxes tienen nombres diferentes para que no se pierda todas las casillas marcadas
-        self.normalizar_a = QCheckBox("Normalizar por area")
-        self.derivada_pd = QCheckBox("Primera Derivada")
-        self.derivada_sd = QCheckBox("Segunda Derivada")
-        self.correccion_cbl = QCheckBox("Correccion Base Lineal")
-        self.correccion_cs = QCheckBox("Correccion Shirley")
-        
-        #################################################
-        # ESTILO PARA EL COMBO BOX DE NORMALIZAR MEDIA
+        self.normalizar_a = QCheckBox("Area Normalization")
+        self.derivada_pd = QCheckBox("First Derivative")
+        self.derivada_sd = QCheckBox("Second Derivative")
+        self.correccion_cbl = QCheckBox("Linear Baseline Correction")
+        self.correccion_cs = QCheckBox("Shirley Correction")
+                
+        # STYLE FOR THE MEAN NORMALIZATION COMBO BOX
         estilo_grupo_y_combo = """
             QGroupBox {
                 color: white;
@@ -1384,10 +1358,8 @@ class VentanaTransformaciones(QWidget):
 
         self.grupo_normalizar.setStyleSheet(estilo_grupo_y_combo)
         self.combo_normalizar.setStyleSheet(estilo_grupo_y_combo)
-        #################################################################################
 
-        ##############################################################################
-        # Grupo Savitzky-Golay ESTILOS CSS
+        # Savitzky-Golay Group CSS styles
         estilo_checkbox = """
             QGroupBox {
                 color: white;
@@ -1443,18 +1415,18 @@ class VentanaTransformaciones(QWidget):
             }
         """
 
-        # Grupo Savitzky-Golay
-        self.grupo_sg = QGroupBox("Suavizado Savitzky-Golay")
+        # Savitzky-Golay Group
+        self.grupo_sg = QGroupBox("Savitzky-Golay Smoothing")
         self.grupo_sg.setCheckable(True)
         self.grupo_sg.setChecked(False)
 
-        self.label_ventana_sg = QLabel("Ventana:")
+        self.label_ventana_sg = QLabel("Window:")
         self.input_ventana_sg = QLineEdit()
-        self.input_ventana_sg.setPlaceholderText("Ej: 5")
+        self.input_ventana_sg.setPlaceholderText("E.g.: 5")
 
-        self.label_orden_sg = QLabel("Orden:")
+        self.label_orden_sg = QLabel("Order:")
         self.input_orden_sg = QLineEdit()
-        self.input_orden_sg.setPlaceholderText("Ej: 2")
+        self.input_orden_sg.setPlaceholderText("E.g.: 2")
 
         layout_sg = QVBoxLayout()
         layout_sg.addWidget(self.label_ventana_sg)
@@ -1465,14 +1437,14 @@ class VentanaTransformaciones(QWidget):
         self.grupo_sg.setLayout(layout_sg)
         self.grupo_sg.setStyleSheet(estilo_checkbox)
 
-        # Grupo Filtro Grausiano
-        self.grupo_fg = QGroupBox("Suavizado Filtro Gausiano")
+        # Gaussian Filter Group
+        self.grupo_fg = QGroupBox("Gaussian Filter Smoothing")
         self.grupo_fg.setCheckable(True)
         self.grupo_fg.setChecked(False)
 
         self.label_sigma_fg = QLabel("Sigma:")
         self.input_sigma_fg = QLineEdit()
-        self.input_sigma_fg.setPlaceholderText("Ej: 2")
+        self.input_sigma_fg.setPlaceholderText("E.g.: 2")
 
         layout_fg = QVBoxLayout()
         layout_fg.addWidget(self.label_sigma_fg)
@@ -1481,14 +1453,14 @@ class VentanaTransformaciones(QWidget):
         self.grupo_fg.setLayout(layout_fg)
         self.grupo_fg.setStyleSheet(estilo_checkbox)
 
-        # Grupo Media Movil
-        self.grupo_mm = QGroupBox("Suavizado Media Movil")
+        # Moving Average Group
+        self.grupo_mm = QGroupBox("Moving Average Smoothing")
         self.grupo_mm.setCheckable(True)
         self.grupo_mm.setChecked(False)
 
-        self.label_ventana_mm = QLabel("Ventana:")
+        self.label_ventana_mm = QLabel("Window:")
         self.input_ventana_mm = QLineEdit()
-        self.input_ventana_mm.setPlaceholderText("Ej: 2")
+        self.input_ventana_mm.setPlaceholderText("E.g.: 2")
 
         layout_mm = QVBoxLayout()
         layout_mm.addWidget(self.label_ventana_mm)
@@ -1497,8 +1469,7 @@ class VentanaTransformaciones(QWidget):
         self.grupo_mm.setLayout(layout_mm)
         self.grupo_mm.setStyleSheet(estilo_checkbox)
         
-        ################################################################################
-        # USAMOS ESTILOS CSS PARA CAMBIAR EL COLOR DE LOS CHECKBOX POR QUE NO SE LOGRA DISTINGIR CON EL FONDO OSCURO
+        # WE USE CSS STYLES TO CHANGE THE COLOR OF THE CHECKBOXES
         estilo_checkbox = """
             QCheckBox {
                 color: white;
@@ -1554,7 +1525,7 @@ class VentanaTransformaciones(QWidget):
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
 
-        content_layout.addWidget(QLabel("Selecciona un DataFrame para transformar:"))
+        content_layout.addWidget(QLabel("Select a DataFrame to transform:"))
         content_layout.addWidget(self.selector_df)
         content_layout.addWidget(self.grupo_normalizar)
         content_layout.addWidget(self.normalizar_a)
@@ -1567,8 +1538,8 @@ class VentanaTransformaciones(QWidget):
         content_layout.addWidget(self.correccion_cs)
 
         botones_layout = QHBoxLayout()
-        btn_aceptar = QPushButton("Aceptar")
-        btn_cancelar = QPushButton("Cancelar")
+        btn_aceptar = QPushButton("Accept")
+        btn_cancelar = QPushButton("Cancel")
         btn_aceptar.setObjectName("boton_aceptar")
         btn_cancelar.setObjectName("boton_cancelar")
         botones_layout.addWidget(btn_aceptar)
@@ -1586,7 +1557,6 @@ class VentanaTransformaciones(QWidget):
         main_layout.addWidget(scroll)
         self.setLayout(main_layout)
 
-        # Conexiones
         btn_aceptar.clicked.connect(self.aplicar_transformaciones_y_cerrar)
         btn_cancelar.clicked.connect(self.close)
 
@@ -1594,22 +1564,15 @@ class VentanaTransformaciones(QWidget):
     def seleccionar_df(self, index):
         self.df = self.lista_df[index].copy()
         nombre_archivo = os.path.basename(self.nombres_archivos[index])
-        print(f"DataFrame seleccionado: {nombre_archivo} con forma {self.df.shape}")
 
-    # FUNCION PARA QUE SE CIERRE LA VENTANA AL APRETAR ACEPTAR
     def aplicar_transformaciones_y_cerrar(self):
         self.aplicar_transformaciones()
         self.close()
 
 
-    ####     LOS CALCULOS DE ESTAS OPCIONES TRATAR DE HACER DENTRO DE FUNCIONES.PY
-    ####     SEGUN INFORMACIONES NO ES LO MISMO POR EJEMPLO SUAVIZAR Y LUEGO NORMALIZAR QUE NORMALIZAR Y LUEGO SUAVIZAR
-    ####     SEGUN CHATGPT EL ORDEN IMPORTA Y RECOMIENDA QUE SEA: CORRECIONES -> NORMALIZACION -> SUAVIZADO -> DERIVADAS
     def aplicar_transformaciones(self):
-        #df = self.df.copy()
-        opciones = {} # CREAMOS UN DICCIONARIO PARA LOS CASOS ESPECIALES EN DONDE EL HILO TIENE QUE RECIBIR MAS PAREMETROS(VENTANA,ORDEN,SIGMA..) Y NO SOLO EL DF A MODIFICAR
+        opciones = {} # WE CREATE A DICTIONARY FOR SPECIAL CASES WHERE THE THREAD MUST RECEIVE ADDITIONAL PARAMETERS (WINDOW, ORDER, SIGMA, ETC.) AND NOT ONLY THE DATAFRAME TO BE MODIFIED
 
-        # Normalizacion Media
         if self.grupo_normalizar.isChecked():
             metodo = self.combo_normalizar.currentText()
             opciones["normalizar_media"] = {
@@ -1617,69 +1580,61 @@ class VentanaTransformaciones(QWidget):
                 "metodo": metodo
             }
 
-        # Savitzky-Golay
         if self.grupo_sg.isChecked():
-            ventana = int(self.input_ventana_sg.text()) # SE USA LA VARIABLE input_ventana_sg POR QUE ASI SE ESCRIBIO EN LA PARTE QUE SE CREA LA INTERFAZ PARA LA LECTURA DE DATOS
+            ventana = int(self.input_ventana_sg.text()) 
             orden = int(self.input_orden_sg.text())
             opciones["suavizar_sg"] = {"ventana": ventana, "orden": orden}
 
-        # Filtro Gaussiano
         if self.grupo_fg.isChecked():
             sigma = int(self.input_sigma_fg.text())
             opciones["suavizar_fg"] = {"sigma": sigma}
 
-        # Media Móvil
         if self.grupo_mm.isChecked():
             ventana_mm = int(self.input_ventana_mm.text())
             opciones["suavizar_mm"] = {"ventana": ventana_mm}
 
-        # CORRECCIONES
         if self.correccion_cbl.isChecked():
             opciones["correccion_lineal"] = True
 
         if self.correccion_cs.isChecked():
             opciones["correccion_shirley"] = True
 
-        # NORMALIZACION AREA
         if self.normalizar_a.isChecked():
             opciones["normalizar_area"] = True
 
-        # DERIVADAS
         if self.derivada_pd.isChecked():
             opciones["derivada_1"] = True
 
         if self.derivada_sd.isChecked():
             opciones["derivada_2"] = True
 
-
-        self.hilo = HiloMetodosTransformaciones(self.df,opciones) # LLAMAMOS AL HILO Y LE PASAMOS EL DF ORIGINAL Y LA OPCION SELECCIONADA
+        self.hilo = HiloMetodosTransformaciones(self.df,opciones) # WE CALL THE THREAD AND PASS THE ORIGINAL DATAFRAME AND THE SELECTED OPTION
         self.hilo.data_frame_resultado.connect(self.recibir_df_transformado)
         self.hilo.start()
 
+    
     def recibir_df_transformado(self, df_transformado):
-        print("Recibir_df_transformado")
-        # Solicita al usuario un nombre para guardar el DataFrame transformado
-        nombre_df, ok = QInputDialog.getText(self, "Guardar DataFrame", "Ingrese un nombre para el DataFrame transformado:")
+        # Ask the user for a name to save the transformed DataFrame
+        nombre_df, ok = QInputDialog.getText(self, "Save DataFrame", "Enter a name for the transformed DataFrame:")
         if ok and nombre_df.strip():
             self.menu_principal.dataframes.append(df_transformado)
             self.menu_principal.nombres_archivos.append(nombre_df.strip())
-            print("Cantidad de DataFrames:", len(self.menu_principal.dataframes))
-            QMessageBox.information(self, "Éxito", f"DataFrame transformado guardado como '{nombre_df.strip()}'")
-
-# UNA VEZ QUE SE GENERA EL NUEVO DF TRANSFORMADO SE HABRE UNA NUEVA VENTANA
+            QMessageBox.information(self, "Success", f"Transformed DataFrame saved as '{nombre_df.strip()}'")
+            
+# ONCE THE NEW TRANSFORMED DATAFRAME IS GENERATED, A NEW WINDOW IS OPENED
 class VentanaOpcionesPostTransformacion(QWidget):
     def __init__(self, menu_principal, df_transformado):
         super().__init__()
         self.menu_principal = menu_principal
         self.df = df_transformado
 
-        self.setWindowTitle("Acciones con el DataFrame transformado")
+        self.setWindowTitle("Actions for the transformed DataFrame")
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("¿Qué desea hacer con el DataFrame transformado?"))
+        layout.addWidget(QLabel("What would you like to do with the transformed DataFrame?"))
 
-        btn_ver_df = QPushButton("Ver DataFrame")
-        btn_ver_espectro = QPushButton("Mostrar Espectros")
+        btn_ver_df = QPushButton("View DataFrame")
+        btn_ver_espectro = QPushButton("Display Spectra")
 
         btn_ver_df.clicked.connect(self.ver_df)
         btn_ver_espectro.clicked.connect(self.ver_espectros)
@@ -1689,14 +1644,10 @@ class VentanaOpcionesPostTransformacion(QWidget):
         self.setLayout(layout)
 
     def ver_df(self):
-        print("Df transformado 1 self.df")
-        print(self.df)
         self.menu_principal.ver_dataframe(self.df)
         self.close()
     def ver_espectros(self):
         self.menu_principal.ver_espectros(self.df)
-        print("Df transformado 2 self.df")
-        print(self.df)
         self.close()
 
 
@@ -1705,23 +1656,18 @@ class VentanaReduccionDim(QWidget):
     def __init__(self, lista_df, nombres_archivos, menu_principal):
         super().__init__()
         self.menu_principal = menu_principal
-        self.setWindowTitle("Reducción de Dimensionalidad")
+        self.setWindowTitle("Dimensionality Reduction")
         self.resize(600, 500)
         self.lista_df = lista_df.copy()
         self.nombres_archivos = nombres_archivos
         self.df = None
-        #self.asignacion_colores = asignacion_colores
-        #Selector de DataFrame
         self.selector_df = QComboBox()
-        opciones = [os.path.basename(nombre) for nombre in self.nombres_archivos] # PARA QUE APAREZCA EL NOMBRE DE LOS ARCHIVO QUE SE QUIERE TRANSFORMAR
+        opciones = [os.path.basename(nombre) for nombre in self.nombres_archivos] 
         for nombre in opciones:
             self.selector_df.addItem(nombre)
 
         self.selector_df.currentIndexChanged.connect(self.seleccionar_df)
-        self.seleccionar_df(0)  # Selecciona automáticamente el primer df, no llama a al metodo seleccionar_df cuando solo hay un archivo por que currentIndexChanged solo se dispara cuando el usuario cambia manualmente el índice por lo que hay que asignar manualmente el df cuando solo hay uno
-
-        ##############################################################################
-        # Para los estilos de las casillas de intervalo de confianza y numero de componentes principales
+        self.seleccionar_df(0)  
         estilo_general = """
             QWidget {
                 background-color: #2b2b2b; /* gris oscuro más claro */
@@ -1792,13 +1738,13 @@ class VentanaReduccionDim(QWidget):
         """
         self.setStyleSheet(estilo_general)
 
-        self.label_reduccion_dim_componentes = QLabel("Numero de Componentes Principales:")
+        self.label_reduccion_dim_componentes = QLabel("Number of Principal Components:")
         self.input_reduccion_dim_componentes = QLineEdit()
-        self.input_reduccion_dim_componentes.setPlaceholderText("Ej: 2")
+        self.input_reduccion_dim_componentes.setPlaceholderText("E.g.: 2")
 
-        self.label_reduccion_dim_intervalo = QLabel("Intervalo de Confianza:")
+        self.label_reduccion_dim_intervalo = QLabel("Confidence Interval:")
         self.input_reduccion_dim_intervalo = QLineEdit()
-        self.input_reduccion_dim_intervalo.setPlaceholderText("Ej: 90")
+        self.input_reduccion_dim_intervalo.setPlaceholderText("E.g.: 90")
 
         layout_dim = QVBoxLayout() #ORGANIZA LO WIDGET DE FORMA VERTICAL
         layout_dim.addWidget(self.label_reduccion_dim_componentes)
@@ -1811,80 +1757,81 @@ class VentanaReduccionDim(QWidget):
         self.label_reduccion_dim_intervalo.setStyleSheet(estilo_general)
         self.input_reduccion_dim_intervalo.setStyleSheet(estilo_general)
 
-        # Checkboxes , AGREGAR OPCION DE 2D Y 3D, VER LA MANERA MAS LINDO DE ARREGALR ES
-        self.pca = QCheckBox("Análisis de Componentes Principales (PCA)")
+    
+        # Checkboxes — add 2D and 3D options
+        self.pca = QCheckBox("Principal Component Analysis (PCA)")
         self.tsne = QCheckBox("t-Distributed Stochastic Neighbor Embedding (t-SNE)")
         self.tsne_pca = QCheckBox("t-SNE(PCA(X))")
-        self.grafico2d = QCheckBox("Grafico 2D")
-        self.grafico3d = QCheckBox("Grafico 3D")
-        self.graficoloading = QCheckBox("Grafico Loading (PCA)")
-        self.geninforme = QCheckBox("Generar Informe")
+        self.grafico2d = QCheckBox("2D Plot")
+        self.grafico3d = QCheckBox("3D Plot")
+        self.graficoloading = QCheckBox("Loading Plot (PCA)")
+        self.geninforme = QCheckBox("Generate Report")
 
-        # PARA QUE AL DAR CLICK EN t-SNE(PCA(X)) ME MUESTRE EL CAMPO DE PEDIDO DE  NUMERO DE COMPONENTES PRINCIPALES PARA PCA Y TSNE
+        # WHEN t-SNE(PCA(X)) IS CLICKED, SHOW THE INPUT FIELDS FOR THE NUMBER OF PRINCIPAL COMPONENTS USED IN PCA AND t-SNE
         self.tsne_pca.stateChanged.connect(self.toggle_tsne_pca)
         self.input_comp_pca = QLineEdit()
-        self.input_comp_pca.setPlaceholderText("Ingrese el número de CP para PCA:")
+        self.input_comp_pca.setPlaceholderText("Enter the number of PCs for PCA:")
         self.input_comp_tsne = QLineEdit()
-        self.input_comp_tsne.setPlaceholderText("Ingrese el número de CP para TSNE [2,3]:")
+        self.input_comp_tsne.setPlaceholderText("Enter the number of PCs for t-SNE [2,3]:")
         self.contenedor_componentes_tsne_pca = QWidget()
         layout_tsne_pca = QVBoxLayout()
         layout_tsne_pca.addWidget(self.input_comp_pca)
         layout_tsne_pca.addWidget(self.input_comp_tsne)
         self.contenedor_componentes_tsne_pca.setLayout(layout_tsne_pca)
-        self.contenedor_componentes_tsne_pca.hide()  # Ocultamos todo el contenedor
+        self.contenedor_componentes_tsne_pca.hide()  # Hide the entire container
 
 
-        # PARA QUE AL DAR CLICK EN GENERAR INFORME ME MUESTRE UN CAMPO SOLICITANDO EL NOMBRE DEL INFORME
+        # WHEN "GENERATE REPORT" IS CLICKED, SHOW A FIELD ASKING FOR THE REPORT FILE NAME
         self.geninforme.stateChanged.connect(self.toggle_nombre_informe)
-        self.label_nombre_informe = QLabel("Nombre del archivo del informe:")
+        self.label_nombre_informe = QLabel("Report file name:")
         self.input_nombre_informe = QLineEdit()
-        self.input_nombre_informe.setPlaceholderText("Ej: informe.txt")
+        self.input_nombre_informe.setPlaceholderText("E.g.: report.txt")
         self.contenedor_nombre_informe = QWidget()
         layout_nombre_informe = QHBoxLayout()
         layout_nombre_informe.addWidget(self.label_nombre_informe)
         layout_nombre_informe.addWidget(self.input_nombre_informe)
         self.contenedor_nombre_informe.setLayout(layout_nombre_informe)
-        self.contenedor_nombre_informe.hide()  # Ocultamos todo el contenedor
+        self.contenedor_nombre_informe.hide()  # Hide the entire container
 
-        # PARA QUE AL DAR CLICK EN GRAFICO 2D ME MUESTRE EL CAMPO DE PEDIDO DE  NUMERO DE COMPONENTES PRINCIPALES PARA GRAFICAR [X,Y]
+        # WHEN "2D PLOT" IS CLICKED, SHOW THE INPUT FIELDS FOR THE PRINCIPAL COMPONENT NUMBERS TO BE PLOTTED [X, Y]
         self.grafico2d.stateChanged.connect(self.toggle_gen2d)
         self.input_x_2d = QLineEdit()
-        self.input_x_2d.setPlaceholderText("Ingrese el número de PC para X:")
+        self.input_x_2d.setPlaceholderText("Enter the PC number for X:")
         self.input_y_2d = QLineEdit()
-        self.input_y_2d.setPlaceholderText("Ingrese el número de PC para Y:")
+        self.input_y_2d.setPlaceholderText("Enter the PC number for Y:")
         self.contenedor_componentes2d = QWidget()
         layout_numero_cmp_2d = QVBoxLayout()
         layout_numero_cmp_2d.addWidget(self.input_x_2d)
         layout_numero_cmp_2d.addWidget(self.input_y_2d)
         self.contenedor_componentes2d.setLayout(layout_numero_cmp_2d)
-        self.contenedor_componentes2d.hide()  # Ocultamos todo el contenedor
+        self.contenedor_componentes2d.hide()  # Hide the entire container
 
-        # PARA QUE AL DAR CLICK EN GRAFICO 3D ME MUESTRE EL CAMPO DE PEDIDO DE  NUMERO DE COMPONENTES PRINCIPALES PARA GRAFICAR [X,Y,Z]
+        # WHEN "3D PLOT" IS CLICKED, SHOW THE INPUT FIELDS FOR THE PRINCIPAL COMPONENT NUMBERS TO BE PLOTTED [X, Y, Z]
         self.grafico3d.stateChanged.connect(self.toggle_gen3d)
         self.input_x_3d = QLineEdit()
-        self.input_x_3d.setPlaceholderText("Ingrese el número de PC para X:")
+        self.input_x_3d.setPlaceholderText("Enter the PC number for X:")
         self.input_y_3d = QLineEdit()
-        self.input_y_3d.setPlaceholderText("Ingrese el número de PC para Y:")
+        self.input_y_3d.setPlaceholderText("Enter the PC number for Y:")
         self.input_z_3d = QLineEdit()
-        self.input_z_3d.setPlaceholderText("Ingrese el número de PC para Z:")
+        self.input_z_3d.setPlaceholderText("Enter the PC number for Z:")
         self.contenedor_componentes3d = QWidget()
         layout_numero_cmp_3d = QVBoxLayout()
         layout_numero_cmp_3d.addWidget(self.input_x_3d)
         layout_numero_cmp_3d.addWidget(self.input_y_3d)
         layout_numero_cmp_3d.addWidget(self.input_z_3d)
         self.contenedor_componentes3d.setLayout(layout_numero_cmp_3d)
-        self.contenedor_componentes3d.hide()  # Ocultamos todo el contenedor
-        
-        # PARA QUE AL DAR CLICK EN LOANDING ME MUESTRE EL CAMPO DE PEDIDO DE  NUMERO DE COMPONENTES PRINCIPALES PARA GRAFICAR [X,Y] O [X,Y,Z]
+        self.contenedor_componentes3d.hide()  # Hide the entire container
+                
+        # WHEN "LOADING PLOT" IS CLICKED, SHOW THE INPUT FIELDS FOR THE PRINCIPAL COMPONENT NUMBERS TO BE PLOTTED [X, Y] OR [X, Y, Z]
         self.graficoloading.stateChanged.connect(self.toggle_loading)
         self.input_cant_comp = QLineEdit()
-        self.input_cant_comp.setPlaceholderText("Ingrese cantidad de componentes principales")
+        self.input_cant_comp.setPlaceholderText("Enter the number of principal components")
         self.input_x_loading = QLineEdit()
-        self.input_x_loading.setPlaceholderText("Ingrese el número de PC para X:")
+        self.input_x_loading.setPlaceholderText("Enter the PC number for X:")
         self.input_y_loading = QLineEdit()
-        self.input_y_loading.setPlaceholderText("Ingrese el número de PC para Y:")
+        self.input_y_loading.setPlaceholderText("Enter the PC number for Y:")
         self.input_z_loading = QLineEdit()
-        self.input_z_loading.setPlaceholderText("Ingrese el número de PC para Z:")
+        self.input_z_loading.setPlaceholderText("Enter the PC number for Z:")
         self.contenedor_loading = QWidget()
         layout_numero_cmp_loading = QVBoxLayout()
         layout_numero_cmp_loading.addWidget(self.input_cant_comp)
@@ -1892,7 +1839,7 @@ class VentanaReduccionDim(QWidget):
         layout_numero_cmp_loading.addWidget(self.input_y_loading)
         layout_numero_cmp_loading.addWidget(self.input_z_loading)
         self.contenedor_loading.setLayout(layout_numero_cmp_loading)
-        self.contenedor_loading.hide()  # Ocultamos todo el contenedor
+        self.contenedor_loading.hide() 
 
         self.pca.setStyleSheet(estilo_general)
         self.tsne.setStyleSheet(estilo_general)
@@ -1902,14 +1849,14 @@ class VentanaReduccionDim(QWidget):
         self.geninforme.setStyleSheet(estilo_general)
         self.graficoloading.setStyleSheet(estilo_general)
 
-        btn_aceptar = QPushButton("Aceptar")
-        btn_cancelar = QPushButton("Cancelar")
+        btn_aceptar = QPushButton("Accept")
+        btn_cancelar = QPushButton("Cancel")
         btn_cancelar.setObjectName("boton_cancelar")
         btn_aceptar.clicked.connect(self.aplicar_transformaciones_y_cerrar)
         btn_cancelar.clicked.connect(self.close)
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Selecciona un DataFrame y técnicas de reducción de dimensionalidad:"))
+        layout.addWidget(QLabel("Select a DataFrame and dimensionality reduction techniques:"))
         layout.addWidget(self.selector_df)
         layout.addWidget(self.pca)
         layout.addWidget(self.tsne)
@@ -1933,29 +1880,23 @@ class VentanaReduccionDim(QWidget):
         botones_layout.addWidget(btn_cancelar)
         layout.addLayout(botones_layout)
 
-        #Creamos el widget contenedor
         contenedor_widget = QWidget()
         contenedor_widget.setLayout(layout)
 
-        #Crearmos el scroll area
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True) 
         scroll_area.setWidget(contenedor_widget)
 
-        #Layout de la ventana principal
         layout_principal = QVBoxLayout(self)
         layout_principal.addWidget(scroll_area)
         self.setLayout(layout_principal)
         
-
-
-        # --- Botones de guardado (van al final de __init__) ---
-        self.btn_graficar_vacumulada = QPushButton("Ver Varianza Acumulada")
-        self.btn_save_pca2d = QPushButton("Guardar PCA 2D")
-        self.btn_save_pca3d = QPushButton("Guardar PCA 3D")
-        self.btn_save_tsne2d = QPushButton("Guardar t-SNE 2D")
-        self.btn_save_tsne3d = QPushButton("Guardar t-SNE 3D")
-        self.btn_save_loading = QPushButton("Guardar Loadings")
+        self.btn_graficar_vacumulada = QPushButton("View Cumulative Variance")
+        self.btn_save_pca2d = QPushButton("Save PCA 2D")
+        self.btn_save_pca3d = QPushButton("Save PCA 3D")
+        self.btn_save_tsne2d = QPushButton("Save t-SNE 2D")
+        self.btn_save_tsne3d = QPushButton("Save t-SNE 3D")
+        self.btn_save_loading = QPushButton("Save Loadings")
 
         for b in (self.btn_save_pca2d, self.btn_save_pca3d, self.btn_save_tsne2d, self.btn_save_tsne3d, self.btn_save_loading):
             b.setEnabled(False)
@@ -1968,9 +1909,9 @@ class VentanaReduccionDim(QWidget):
         fila_botones.addWidget(self.btn_save_tsne3d)
         fila_botones.addWidget(self.btn_save_loading)
 
-        layout_principal.addLayout(fila_botones)  # ⬅️ agrega la fila de botones debajo del scroll
+        layout_principal.addLayout(fila_botones) 
 
-        # --- Variables para guardar las últimas figuras recibidas ---
+        # --- Variables for storing the most recently received figures ---
         self._fig_vacumulada = None
         self._fig_pca2d = None
         self._fig_pca3d = None
@@ -1978,19 +1919,13 @@ class VentanaReduccionDim(QWidget):
         self._fig_tsne3d = None
         self._fig_loading = None
 
-        # --- Señales de los botones ---
-        self.btn_graficar_vacumulada.clicked.connect(self._ver_varianza_acumulada) # para la grafica de varianza acumulada
+        # --- Button signals ---
+        self.btn_graficar_vacumulada.clicked.connect(self._ver_varianza_acumulada) 
         self.btn_save_pca2d.clicked.connect(lambda: self._guardar_fig(self._fig_pca2d, "pca_2d.png"))
         self.btn_save_pca3d.clicked.connect(lambda: self._guardar_fig(self._fig_pca3d, "pca_3d.png"))
         self.btn_save_tsne2d.clicked.connect(lambda: self._guardar_fig(self._fig_tsne2d, "tsne_2d.png"))
         self.btn_save_tsne3d.clicked.connect(lambda: self._guardar_fig(self._fig_tsne3d, "tsne_3d.png"))
         self.btn_save_loading.clicked.connect(lambda: self._guardar_fig(self._fig_loading, "loadings.png"))
-
-
-
-
-
-
 
 
     def toggle_nombre_informe(self, state):
@@ -2013,58 +1948,57 @@ class VentanaReduccionDim(QWidget):
             self.df = self.lista_df[index].copy()
 
     def aplicar_transformaciones_y_cerrar(self):
-        componentes = self.input_reduccion_dim_componentes.text().strip() # text() devuelve el texto que el usuario escribió en ese campo y strip() elimina los espacios en blanco
+        componentes = self.input_reduccion_dim_componentes.text().strip()  # text() returns the text entered by the user in that field, and strip() removes leading and trailing whitespace
         intervalo = self.input_reduccion_dim_intervalo.text().strip()
         nombre_informe = self.input_nombre_informe.text().strip()
-        cant_componentes_loading = self.input_cant_comp.text().strip() # CANTIDAD DE CP PARA LOS GRAFICO DE LOADING (PRIMERO VA A LA FUNCION PCA)
-        num_x_loading = self.input_x_loading.text().strip() # PARA LOADING COMPONENTES A GRAFICAR X
-        num_y_loading = self.input_y_loading.text().strip() # PARA LOADING COMPONENTES A GRAFICAR Y
-        num_z_loading = self.input_z_loading.text().strip() # PARA LOADING COMPONENTES A GRAFICAR Z (PUEDE NO TENER Z), SI NO  SE INGRESO NADA num_z_loading == ""
+        cant_componentes_loading = self.input_cant_comp.text().strip()  # NUMBER OF PCs FOR THE LOADING PLOTS (FIRST PASSED TO THE PCA FUNCTION)
+        num_x_loading = self.input_x_loading.text().strip()  # X COMPONENT TO PLOT FOR THE LOADING PLOT
+        num_y_loading = self.input_y_loading.text().strip()  # Y COMPONENT TO PLOT FOR THE LOADING PLOT
+        num_z_loading = self.input_z_loading.text().strip()  # Z COMPONENT TO PLOT FOR THE LOADING PLOT (Z MAY BE ABSENT); IF NOTHING IS ENTERED, num_z_loading == ""
         componentes_selec_loading = None 
         if num_z_loading == "":
             num_z_loading = 0 
 
         if self.df is None:
-            QMessageBox.warning(self, "Sin selección", "Debe seleccionar un DataFrame.")
+            QMessageBox.warning(self, "No selection", "You must select a DataFrame.")
             return
 
         componentes_selec = []
         opciones = {}
         
-        # Valores por defecto para el caso de que no se use cp_pca , cp_tsne y igual necesite enviar algun dato para evitar errores
+        # Default values in case cp_pca or cp_tsne are not used, but some value still needs to be passed to avoid errors
         cp_pca = None
         cp_tsne = None
-        
-        
+
         if self.pca.isChecked():
-            opciones["PCA"] = True   # ACA QUIERO QUE HALLE SOLAMENTE EL VALOR DEL PCA
+            opciones["PCA"] = True   # HERE I WANT IT TO COMPUTE ONLY THE PCA VALUES
         if self.tsne.isChecked():
-            opciones["TSNE"] = True   # ACA QUIERO SOLO EL CALCULO DEL TSNE
+            opciones["TSNE"] = True   # HERE I WANT ONLY THE t-SNE CALCULATION
         if self.tsne_pca.isChecked():
-            opciones["t-SNE(PCA(X))"] = True  # PREPARADO POR LAS DUDAS MAS ADELANTE SE NECESITE
+            opciones["t-SNE(PCA(X))"] = True
             cp_pca = int(self.input_comp_pca.text())
             cp_tsne = int(self.input_comp_tsne.text())
         if self.grafico2d.isChecked():
-            opciones["GRAFICO 2D"] = True # VALIDAR QUE EL USUARIO HALLA ELEGIDO(CHECK) EL PCA O EL TSNE
+            opciones["GRAFICO 2D"] = True  # VALIDATE THAT THE USER HAS SELECTED (CHECKED) PCA OR t-SNE
             self.pc_x = int(self.input_x_2d.text())
             self.pc_y = int(self.input_y_2d.text())
             componentes_selec = [self.pc_x, self.pc_y]
         if self.grafico3d.isChecked():
-            opciones["GRAFICO 3D"] = True # VALIDAR QUE EL USUARIO HALLA ELEGIDO(CHECK) EL PCA O EL TSNE
+            opciones["GRAFICO 3D"] = True  # VALIDATE THAT THE USER HAS SELECTED (CHECKED) PCA OR t-SNE
             self.pc_x = int(self.input_x_3d.text())
             self.pc_y = int(self.input_y_3d.text())
             self.pc_z = int(self.input_z_3d.text())
             componentes_selec = [self.pc_x, self.pc_y, self.pc_z]
-        
+
         if self.geninforme.isChecked():
-            opciones["GENERAR INFORME"] = True  # VALIDAR QUE EL USUARIO HALLA ELEGIDO(CHECK) EL PCA O EL TSNE PARA GENERAR EL REPORTE
-            
+            opciones["GENERAR INFORME"] = True  # VALIDATE THAT THE USER HAS SELECTED (CHECKED) PCA OR t-SNE TO GENERATE THE REPORT
+
         if self.graficoloading.isChecked():
-            opciones["Grafico Loading (PCA)"] = True  # SI NO SE INGRESA VALOR DE Z GRAFICARA SOLO X e Y
+            opciones["Grafico Loading (PCA)"] = True  # IF NO Z VALUE IS PROVIDED, ONLY X AND Y WILL BE PLOTTED
             num_x_loading = int(num_x_loading)
             num_y_loading = int(num_y_loading)
             num_z_loading = int(num_z_loading)
-            componentes_selec_loading = [num_x_loading,num_y_loading,num_z_loading]
+            componentes_selec_loading = [num_x_loading, num_y_loading, num_z_loading]
 
         
         self.hilo = HiloMetodosReduccion(self.df, opciones,componentes,intervalo,nombre_informe,componentes_selec,cp_pca,cp_tsne,componentes_selec_loading,cant_componentes_loading)
@@ -2078,11 +2012,11 @@ class VentanaReduccionDim(QWidget):
 
     def _guardar_fig(self, fig, nombre_defecto):
         if fig is None:
-            QMessageBox.warning(self, "Atención", "No hay figura para guardar.")
+            QMessageBox.warning(self, "Warning", "There is no figure to save.")
             return
 
         ruta, _ = QFileDialog.getSaveFileName(
-            self, "Guardar gráfico", nombre_defecto,
+            self, "Save plot", nombre_defecto,
             "PNG (*.png);;SVG (*.svg);;PDF (*.pdf);;HTML (*.html)"
         )
         if not ruta:
@@ -2093,52 +2027,26 @@ class VentanaReduccionDim(QWidget):
             else:
                 # Requiere: pip install -U kaleido
                 fig.write_image(ruta, scale=2)
-            QMessageBox.information(self, "Éxito", f"Gráfico guardado en:\n{ruta}")
+            QMessageBox.information(self, "Success", f"Plot saved to:\n{ruta}")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo guardar el gráfico:\n{e}")
+            QMessageBox.critical(self, "Error", f"The plot could not be saved:\n{e}")
 
-
-
-    # def _ver_varianza_acumulada(self):
-
-    #     if self.df is None:
-    #         QMessageBox.warning(self, "Sin datos", "Primero cargue un archivo.")
-    #         return
-
-    #     try:
-    #         var_acum, n95 = calcular_varianza_acumulada(self.df)
-    #         fig = graficar_varianza_acumulada(var_acum, umbral=95)
-
-    #         self._fig_vacumulada = fig
-    #         fig.show()
-
-    #         QMessageBox.information(
-    #             self,
-    #             "Varianza acumulada",
-    #             f"Componentes necesarios para ≥95%: {n95}"
-    #         )
-
-    #     except Exception as e:
-    #         QMessageBox.critical(self, "Error", str(e))
-            
             
         
     def _ver_varianza_acumulada(self):
 
         if self.df is None:
-            QMessageBox.warning(self, "Sin datos", "No hay datos cargados.")
+            QMessageBox.warning(self, "No data", "No data has been loaded.")
             return
 
         try:
-            # Calcular
             var_ind, var_acum, n95 = calcular_varianza_acumulada(self.df, umbral=95)
-            print("Ver_varianza_acumulada")
-            print(self.df)
-            # Mostrar hasta alcanzar el 95% (más útil que fijo 20)
-            max_cp = n95*3   # PUSE *3 POR QUE SIN ESE EN EL GRAFICO DE VARIANZA ACUMULADA SOLO MOSTRARA LA BARRAS NECESARIAS PARA LLEGAR AL 95% Y AL
-                             # PONER EN *3 LOGRO VER EL TRIPLE DE ESO PARA PODER VER COMO VARIA DE AHI EN ADELANTE Y TAMPOCO PONGO LIBRE POR QUE SI SON 
-                            # MUCHAS MUESTRAS COMO EL CASO DE analgesicos.csv o allspectra.csv que tienen 151 muestras el grafico no se entenderia
-
+            # Show components up to the point where 95% is reached (more useful than a fixed 20)
+            max_cp = n95 * 3   # I USED *3 BECAUSE WITHOUT IT, THE CUMULATIVE VARIANCE PLOT WOULD SHOW ONLY THE BARS NEEDED TO REACH 95%, AND
+                            # BY USING *3 I CAN SEE THREE TIMES THAT RANGE TO OBSERVE HOW THE VARIANCE BEHAVES AFTER THAT POINT. I ALSO DO NOT
+                            # LEAVE IT FULLY OPEN BECAUSE IF THERE ARE MANY SAMPLES, AS IN analgesics.csv OR allspectra.csv WITH 151 SAMPLES,
+                            # THE PLOT WOULD BECOME HARD TO INTERPRET.
+            
             fig = graficar_varianza_acumulada(
                 var_acum,
                 var_ind=var_ind,
@@ -2150,7 +2058,7 @@ class VentanaReduccionDim(QWidget):
             self._fig_vacumulada = fig
             fig.show()
 
-            QMessageBox.information(self, "PCA", f"CP necesarios para ≥95%: {n95}")
+            QMessageBox.information(self, "PCA", f"PCs required for ≥95%: {n95}")
 
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
@@ -2183,34 +2091,29 @@ class VentanaReduccionDim(QWidget):
     def mostrar_grafico_loading(self, fig):
         self._fig_loading = fig
         self.btn_save_loading.setEnabled(True)
-        #print("VOLVIO AL MAIN LOADGING")
         self.ventana_tsne = VentanaGraficoLoading(fig)
         self.ventana_tsne.show()
         
         
-
-# VentanaGraficoPCA2D y VentanaGraficoPCA3D son lo mismo solo que separo de por si quiero hacerle mejoras independiente(mas botones o algun tipo de leyenda especial)
-# VER QUE HACE LINEA POR LINEA
 class VentanaGraficoPCA2D(QWidget):
     def __init__(self, fig, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Gráfico PCA 2D")
+        self.setWindowTitle("2D PCA Plot")
 
         layout = QVBoxLayout()
         self.browser = QWebEngineView()
         layout.addWidget(self.browser)
         self.setLayout(layout)
 
-        # Guardar figura Plotly en un archivo temporal HTML
+        # Save the Plotly figure as a temporary HTML file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as f:
             fig.write_html(f.name)
             self.browser.setUrl(QUrl.fromLocalFile(f.name))
 
-        # Guardar la ruta para borrar luego si querés
+        # Save the path so it can be deleted later if needed
         self.tempfile_path = f.name
 
     def closeEvent(self, event):
-        # Borra el archivo temporal al cerrar la ventana
         if os.path.exists(self.tempfile_path):
             os.remove(self.tempfile_path)
         event.accept()
@@ -2218,21 +2121,19 @@ class VentanaGraficoPCA2D(QWidget):
 class VentanaGraficoPCA3D(QWidget):
     def __init__(self, fig, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Gráfico PCA 3D")
+        self.setWindowTitle("3D PCA Plot")
 
         layout = QVBoxLayout()
         self.browser = QWebEngineView()
         layout.addWidget(self.browser)
         self.setLayout(layout)
 
-        # Guardar figura Plotly 3D como HTML temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as f:
             fig.write_html(f.name)
             self.browser.setUrl(QUrl.fromLocalFile(f.name))
-            self.tempfile_path = f.name  # Guardar la ruta
+            self.tempfile_path = f.name  
 
     def closeEvent(self, event):
-        # Eliminar el archivo temporal al cerrar
         if os.path.exists(self.tempfile_path):
             os.remove(self.tempfile_path)
         event.accept()
@@ -2243,21 +2144,19 @@ class VentanaGraficoPCA3D(QWidget):
 class VentanaGraficoTSNE2D(QWidget):
     def __init__(self, fig, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Gráfico t-SNE 2D")
+        self.setWindowTitle("2D t-SNE Plot")
 
         layout = QVBoxLayout()
         self.browser = QWebEngineView()
         layout.addWidget(self.browser)
         self.setLayout(layout)
 
-        # Guardar figura en archivo HTML temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as f:
             fig.write_html(f.name)
             self.browser.setUrl(QUrl.fromLocalFile(f.name))
             self.tempfile_path = f.name
 
     def closeEvent(self, event):
-        # Eliminar archivo temporal al cerrar
         if os.path.exists(self.tempfile_path):
             os.remove(self.tempfile_path)
         event.accept()
@@ -2267,21 +2166,18 @@ class VentanaGraficoTSNE2D(QWidget):
 class VentanaGraficoTSNE3D(QWidget):
     def __init__(self, fig, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Gráfico t-SNE 3D")
-
+        self.setWindowTitle("3D t-SNE Plot")
         layout = QVBoxLayout()
         self.browser = QWebEngineView()
         layout.addWidget(self.browser)
         self.setLayout(layout)
 
-        # Guardar figura en archivo HTML temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as f:
             fig.write_html(f.name)
             self.browser.setUrl(QUrl.fromLocalFile(f.name))
             self.tempfile_path = f.name
 
     def closeEvent(self, event):
-        # Eliminar archivo temporal al cerrar
         if os.path.exists(self.tempfile_path):
             os.remove(self.tempfile_path)
         event.accept()
@@ -2289,7 +2185,7 @@ class VentanaGraficoTSNE3D(QWidget):
 class VentanaGraficoLoading(QWidget):
     def __init__(self, fig, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Gráfico Loading PCA")
+        self.setWindowTitle("PCA Loading Plot")
         self.setMinimumSize(800, 600)
 
         layout = QVBoxLayout()
@@ -2298,13 +2194,11 @@ class VentanaGraficoLoading(QWidget):
         self.setLayout(layout)
         self.show()
 
-
-############## ACA ES DONDE EXPLICO BIEN COMO FUNCIONA LOS LAYOUT Y SU ORDEN########################
 class VentanaHca(QWidget):
     def __init__(self, lista_df, nombres_archivos, menu_principal):
         super().__init__()
         self.menu_principal = menu_principal
-        self.setWindowTitle("HCA (Análisis de Conglomerados Jerárquico)")
+        self.setWindowTitle("HCA (Hierarchical Cluster Analysis)")
         self.resize(400, 300)
         self.lista_df = lista_df.copy()
         self.nombres_archivos = nombres_archivos
@@ -2373,21 +2267,19 @@ class VentanaHca(QWidget):
             }
         """)
 
-        
-        # Seleccionamos el de DataFrame
         self.selector_df = QComboBox()
-        opciones = [os.path.basename(nombre) for nombre in self.nombres_archivos] # PARA QUE APAREZCA EL NOMBRE DE LOS ARCHIVO QUE SE QUIERE TRANSFORMAR
+        opciones = [os.path.basename(nombre) for nombre in self.nombres_archivos] # TO DISPLAY THE NAME OF THE FILE TO BE TRANSFORMED
         for nombre in opciones:
             self.selector_df.addItem(nombre)
 
         self.selector_df.currentIndexChanged.connect(self.seleccionar_df)
         if self.lista_df:
-            self.seleccionar_df(0)  # Selecciona automáticamente el primer df, no llama a al metodo seleccionar_df cuando solo hay un archivo por que currentIndexChanged solo se dispara cuando el usuario cambia manualmente el índice por lo que hay que asignar manualmente el df cuando solo hay uno
+            self.seleccionar_df(0)  # Automatically selects the first DataFrame. It does not call the seleccionar_df method when there is only one file, because currentIndexChanged is triggered only when the user manually changes the index, so the DataFrame must be assigned manually when there is only one.
         else:
-            print("Lista Vacia")
+            print("Empty list")
         
-        btn_aceptar = QPushButton("Aceptar")
-        btn_cancelar = QPushButton("Cancelar")
+        btn_aceptar = QPushButton("Accept")
+        btn_cancelar = QPushButton("Cancel")
         btn_cancelar.setObjectName("boton_cancelar")
         btn_aceptar.clicked.connect(self.aplicar_transformaciones_y_cerrar)
         btn_cancelar.clicked.connect(self.close)
@@ -2395,28 +2287,26 @@ class VentanaHca(QWidget):
         botones_layout.addWidget(btn_aceptar)
         botones_layout.addWidget(btn_cancelar)
                 
-        # PRIMERO CREAMOS LOS CHECKBOX (PASO 1)
-        self.label_distancia_metodo = QLabel("¿Qué método de distancias deseas utilizar?")
-        self.euclidiana = QCheckBox("Euclidiana")
+        # FIRST, WE CREATE THE CHECKBOXES (STEP 1)
+        self.label_distancia_metodo = QLabel("Which distance metric would you like to use?")
+        self.euclidiana = QCheckBox("Euclidean")
         self.manhattan = QCheckBox("Manhattan")
-        self.coseno = QCheckBox("Coseno")
+        self.coseno = QCheckBox("Cosine")
         self.chebyshev = QCheckBox("Chebyshev")
-        self.correlación_pearson = QCheckBox("Correlación Pearson")
-        self.correlación_spearman = QCheckBox("Correlación Spearman")
+        self.correlación_pearson = QCheckBox("Pearson Correlation")
+        self.correlación_spearman = QCheckBox("Spearman Correlation")
         self.jaccard = QCheckBox("Jaccard")
-        
-        self.label_cluster_metodo = QLabel("¿Qué método de enlace entre clústeres deseas utilizar?")
+
+        self.label_cluster_metodo = QLabel("Which cluster linkage method would you like to use?")
         self.ward = QCheckBox("Ward")
         self.single_linkage = QCheckBox("Single Linkage")
         self.complete_linkage = QCheckBox("Complete Linkage")
         self.average_linkage = QCheckBox("Average Linkage")
-        
-        # ESTE SERIA SOLO PARA QUE CUANDO SE MARQUE OTRA OPCION QUE NO SEA EUCLIDIANA O MANHATTAN QUE SE DESACTIVE EL WARD
+                
+        # THIS WOULD BE USED SO THAT IF AN OPTION OTHER THAN EUCLIDEAN OR MANHATTAN IS SELECTED, WARD IS DISABLED
         self.euclidiana.stateChanged.connect(self.actualizar_estado_enlaces)
         self.manhattan.stateChanged.connect(self.actualizar_estado_enlaces)
         
-
-        # LUEGO LO AGREGAMOS EN UN LAYOUT QUE ES PARA QUE LAS OPCIONES SE VEAN EN HORIZONTAL (PASO 2)
         distancia_layout = QHBoxLayout() 
         distancia_layout.addWidget(self.euclidiana)
         distancia_layout.addWidget(self.manhattan)
@@ -2432,23 +2322,8 @@ class VentanaHca(QWidget):
         cluster_layout.addWidget(self.complete_linkage)
         cluster_layout.addWidget(self.average_linkage)
         
-        # ACA AGREGAMOLOS LOS ESTILOS CSS A LOS CHECKBOX PARA QUE SEAN BLANCOS (NO OBLIGATORIO)
-        # self.euclidiana.setStyleSheet(estilo_checkbox)
-        # self.manhattan.setStyleSheet(estilo_checkbox)
-        # self.coseno.setStyleSheet(estilo_checkbox)
-        # self.chebyshev.setStyleSheet(estilo_checkbox)
-        # self.correlación_pearson.setStyleSheet(estilo_checkbox)
-        # self.correlación_spearman.setStyleSheet(estilo_checkbox)
-        # self.jaccard.setStyleSheet(estilo_checkbox)
-        # self.ward.setStyleSheet(estilo_checkbox)
-        # self.single_linkage.setStyleSheet(estilo_checkbox)
-        # self.complete_linkage.setStyleSheet(estilo_checkbox)
-        # self.average_linkage.setStyleSheet(estilo_checkbox)
-        
-        
-        # LUEGO CREAMOS EL LAYOUT PRINCIPAL EN DONDE SE AGREGAN TODOS LOS LAYOUT CREADOS, EJEMPLO: LAYOUT PASO 2
         layout = QVBoxLayout()  
-        layout.addWidget(QLabel("Selecciona un DataFrame:"))
+        layout.addWidget(QLabel("Select a DataFrame:"))
         layout.addWidget(self.selector_df)
         layout.addWidget(self.label_distancia_metodo)
         layout.addLayout(distancia_layout)
@@ -2457,7 +2332,7 @@ class VentanaHca(QWidget):
         layout.addLayout(botones_layout)
         
 
-        self.setLayout(layout) # POR ULTIMO SE HACE UN SETLAYOUT DE LAYOUT PRINCIPAL PARA QUE APAREZCAN EN PATALLA
+        self.setLayout(layout) # FINALLY, setLayout IS CALLED WITH THE MAIN LAYOUT SO THAT IT IS DISPLAYED ON THE SCREEN
 
     def seleccionar_df(self, index):
         self.df = self.lista_df[index].copy()
@@ -2465,7 +2340,7 @@ class VentanaHca(QWidget):
     
     def aplicar_transformaciones_y_cerrar(self):
         if self.df is None:
-            QMessageBox.warning(self, "Sin selección", "Debe seleccionar un DataFrame.")
+            QMessageBox.warning(self, "No selection", "You must select a DataFrame.")
             return
 
         opciones = {}
@@ -2494,11 +2369,10 @@ class VentanaHca(QWidget):
             opciones["Average Linkage"] = True
 
         self.hilo = HiloHca(self.df,opciones)
-        # Conectamos la señal emitida desde el hilo (UN HILO PUEDE TENER VARIOS SIGNAL)
         self.hilo.signal_figura_hca.connect(self.generar_hca)
         self.hilo.start()
 
-    # SI NO ESTA MARCADO EUCLIDIANA O MANHATTAN DESABILITA WARD
+    # IF EUCLIDEAN OR MANHATTAN IS NOT SELECTED, DISABLE WARD
     def actualizar_estado_enlaces(self):
         if not (self.euclidiana.isChecked() or self.manhattan.isChecked()):
             self.ward.setEnabled(False)
@@ -2511,11 +2385,10 @@ class VentanaHca(QWidget):
         self.ventana_hca.show()
 
 
-# descomentar el de abajo  
 class VentanaGraficoHCA(QWidget):
     def __init__(self, fig, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Gráfico HCA")
+        self.setWindowTitle("HCA Plot")
 
         layout = QVBoxLayout()
         self.canvas = FigureCanvas(fig)
@@ -2523,7 +2396,6 @@ class VentanaGraficoHCA(QWidget):
         self.setLayout(layout)
 
 
-# ############### ################## ################## ############## ############### #
 class VentanaDataFusion(QWidget):
     def __init__(self, lista_df, nombres_archivos, menu_principal):
         super().__init__()
@@ -2590,7 +2462,7 @@ class VentanaDataFusion(QWidget):
             }
         """)
 
-        # Checkbox para selecciónar los archivos
+        # Checkboxes for selecting files
         self.checkboxes = []
         layout_checkboxes = QVBoxLayout()
         for i, nombre in enumerate(self.nombres_archivos):
@@ -2598,7 +2470,7 @@ class VentanaDataFusion(QWidget):
             layout_checkboxes.addWidget(checkbox)
             self.checkboxes.append((checkbox, self.lista_df[i], self.nombres_archivos[i]))
 
-        # Agregamos un scroll por si haya muchos archivos
+        # Add a scroll area in case there are many files
         scroll_widget = QWidget()
         scroll_widget.setLayout(layout_checkboxes)
 
@@ -2606,8 +2478,8 @@ class VentanaDataFusion(QWidget):
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(scroll_widget)
 
-        btn_aceptar = QPushButton("Aceptar")
-        btn_cancelar = QPushButton("Cancelar")
+        btn_aceptar = QPushButton("Accept")
+        btn_cancelar = QPushButton("Cancel")
         btn_cancelar.setObjectName("boton_cancelar")
         btn_aceptar.clicked.connect(self.aplicar_transformaciones_y_cerrar)
         btn_cancelar.clicked.connect(self.close)
@@ -2617,26 +2489,26 @@ class VentanaDataFusion(QWidget):
         botones_layout.addWidget(btn_cancelar)
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Selecciona los DataFrames a fusionar:"))
+        layout.addWidget(QLabel("Select the DataFrames to fuse:"))
         layout.addWidget(scroll_area)
         layout.addLayout(botones_layout)
 
         self.setLayout(layout)
 
     def aplicar_transformaciones_y_cerrar(self):   
-        self.seleccionados = [] # VERIFICAMOS LOS CHECKBOX QUE ESTAN MARCADOS Y LO GUARDAMOS DENTRO DE ESE LISTA
-        self.nombres_seleccionados = [] # GUARDAMOS LOS NOMBRES SELECCIONADO DENTRO DE UNA LISTA
+        self.seleccionados = []  # WE CHECK WHICH CHECKBOXES ARE SELECTED AND STORE THEM IN THIS LIST
+        self.nombres_seleccionados = []  # WE STORE THE SELECTED NAMES IN A LIST
         for checkbox, df, nombre in self.checkboxes:
             if checkbox.isChecked():
                 self.seleccionados.append(df)
                 self.nombres_seleccionados.append(nombre)
                 
         if not self.seleccionados:
-            QMessageBox.warning(self, "Sin selección", "Debe seleccionar al menos un DataFrame.")
+            QMessageBox.warning(self, "No selection", "You must select at least one DataFrame.")
             return
 
         self.hilo = HiloDataFusion(self.seleccionados)
-        self.hilo.signal_datafusion.connect(self.data_fusion)  # Conectamos la señal emitida desde el hilo (UN HILO PUEDE TENER VARIOS SIGNAL)
+        self.hilo.signal_datafusion.connect(self.data_fusion)  # We connect the signal emitted from the thread (A THREAD CAN HAVE MULTIPLE SIGNALS)
         self.hilo.start()
 
             
@@ -2762,8 +2634,8 @@ class VentanaGraficoDataFusion(QWidget):
             }
         """)
 
-        btn_aceptar = QPushButton("Aceptar")
-        btn_cancelar = QPushButton("Cancelar")
+        btn_aceptar = QPushButton("Accept")
+        btn_cancelar = QPushButton("Cancel")
         btn_cancelar.setObjectName("boton_cancelar")
         btn_cancelar.clicked.connect(self.close)
         botones_layout = QHBoxLayout()
@@ -2775,7 +2647,7 @@ class VentanaGraficoDataFusion(QWidget):
                 
 
         layout_principal = QVBoxLayout()
-        titulo = QLabel("Resumen de los archivos seleccionados")
+        titulo = QLabel("Summary of the selected files")
         titulo.setStyleSheet("font-weight: bold; font-size: 16px;")
         layout_principal.addWidget(titulo)
         
@@ -2800,7 +2672,7 @@ class VentanaGraficoDataFusion(QWidget):
                 selection-color: white;
             }
         """)
-        tabla.setHorizontalHeaderLabels(["Archivo", "Rango Mínimo", "Rango Máximo"])
+        tabla.setHorizontalHeaderLabels(["File", "Minimum Range", "Maximum Range"])
         tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         for i, nombre in enumerate(nombres_seleccionados):
@@ -2812,12 +2684,12 @@ class VentanaGraficoDataFusion(QWidget):
         layout_principal.addWidget(tabla)
 
         # Información de intersección
-        interseccion_label = QLabel(f"¿Tienen intersección? {'Sí' if interseccion else 'No'}")
+        interseccion_label = QLabel(f"Do they intersect? {'Yes' if interseccion else 'No'}")
         interseccion_label.setStyleSheet("font-size: 14px; margin-top: 10px;")
         layout_principal.addWidget(interseccion_label)
 
         if interseccion:
-            rango_label = QLabel(f"Rango común: {rang_comun[0]:.2f} – {rang_comun[1]:.2f}")
+            rango_label = QLabel(f"Common range: {rang_comun[0]:.2f} – {rang_comun[1]:.2f}")
             layout_principal.addWidget(rango_label)
 
         self.lowfusion = QCheckBox("Low Level Fusion")
@@ -2829,15 +2701,15 @@ class VentanaGraficoDataFusion(QWidget):
         datafusion_layout_mf.addWidget(self.midfusion)
 
 
-        # Metodo de Concatenacion 
-        
-        self.gb_concat = QGroupBox("Método de concatenación")
+        # Concatenation Method
+
+        self.gb_concat = QGroupBox("Concatenation Method")
         self.gb_concat.setObjectName("gb_concat")
 
-        self.rb_concat_h = QRadioButton("Horizontal (columnas)")
-        self.rb_concat_v = QRadioButton("Vertical (filas)")
-        self.rb_concat_h.setToolTip("Une por columnas (requiere mismo eje X, típico tras interpolar).")
-        self.rb_concat_v.setToolTip("Apila por filas; agrega etiqueta de origen.")
+        self.rb_concat_h = QRadioButton("Horizontal (columns)")
+        self.rb_concat_v = QRadioButton("Vertical (rows)")
+        self.rb_concat_h.setToolTip("Concatenates by columns (requires the same X-axis, typically after interpolation).")
+        self.rb_concat_v.setToolTip("Stacks by rows and adds a source label.")
 
 
         self.concat_group = QButtonGroup(self)
@@ -2849,54 +2721,51 @@ class VentanaGraficoDataFusion(QWidget):
         concat_row.addWidget(self.rb_concat_v)
         self.gb_concat.setLayout(concat_row)
 
-        self.rb_concat_h.setChecked(True)  # default
-        self.gb_concat.hide()              # ⬅️ oculto por defecto
+        self.rb_concat_h.setChecked(True)  
+        self.gb_concat.hide()              
         
-        # === LOW LEVEL: checkbox maestro y contenedores (crear SIEMPRE, una sola vez) ===
+        # === LOW LEVEL: master checkbox and containers (ALWAYS create them, only once) ===
         self.contenedor_lowf = QWidget()
         self.layout_lowf = QVBoxLayout(self.contenedor_lowf)
 
-        # 1) Checkbox maestro "Interpolar" (DEBE existir antes de usarlo)
-        self.interpolarsi = QCheckBox("Interpolar")
+        # 1) Master checkbox "Interpolate" (MUST exist before being used)
+        self.interpolarsi = QCheckBox("Interpolate")
         self.interpolarsi.stateChanged.connect(self.toggle_interpolarsi)
         self.layout_lowf.addWidget(self.interpolarsi)
 
-        # 2) Bloque que se despliega al marcar "Interpolar"
+        # 2) Block that expands when "Interpolate" is checked
         self.contenedor_interpolacion_low = QWidget()
         self.layout_interpolacion_low = QVBoxLayout(self.contenedor_interpolacion_low)
         self.contenedor_interpolacion_low.hide()
         self.layout_lowf.addWidget(self.contenedor_interpolacion_low)
-        # SI NO HAY INTERSECCION INTERPOLAR A UN MISMO EJE NUMERO DE PUNTOS
-        # SI HAY INTERSECCION INTERPOLAMOS SOLO RANGO COMUN O TODOO EL RAGO COMBINADO
+        
+        # IF THERE IS NO INTERSECTION, INTERPOLATE TO A COMMON X-AXIS USING THE SAME NUMBER OF POINTS
+        # IF THERE IS AN INTERSECTION, INTERPOLATE EITHER ONLY THE COMMON RANGE OR THE ENTIRE COMBINED RANGE
         ############### LOW FUSION LEVEL ###########
         self.opciones_interpolacion = QVBoxLayout()
         self.lowfusion.stateChanged.connect(self.toggle_lowfusion)
-        # Opciones de interpolación (van dentro del contenedor que se despliega con "Interpolar")
         if interseccion:
-            self.rango_comun = QCheckBox("Interpolamos solo en el rango comun")
-            self.rango_completo = QCheckBox("Interpolamos en todo el rango combinado")
+            self.rango_comun = QCheckBox("Interpolate only within the common range")
+            self.rango_completo = QCheckBox("Interpolate over the full combined range")
 
-            # conexiones — FALTABAN
             self.rango_comun.stateChanged.connect(self.mostrar_opciones_interpolacion)
             self.rango_completo.stateChanged.connect(self.mostrar_opciones_interpolacion)
 
-            # exclusivas (opcional)
             self.grp_rangos_low = QButtonGroup(self)
             self.grp_rangos_low.setExclusive(True)
             self.grp_rangos_low.addButton(self.rango_comun)
             self.grp_rangos_low.addButton(self.rango_completo)
 
-            # agregar a contenedor visible (no a self.opciones_interpolacion)
             self.layout_interpolacion_low.addWidget(self.rango_comun)
             self.layout_interpolacion_low.addWidget(self.rango_completo)
         else:
-            self.interpolar_n_puntos = QLabel("No hay rango comun por lo que se interpolara sobre un eje X común artificial (N puntos)")
+            self.interpolar_n_puntos = QLabel("There is no common range, so interpolation will be performed over an artificial common X-axis (N points)")
             self.input_n_puntos = QLineEdit()
-            self.input_n_puntos.setPlaceholderText("Ingrese cantidad de puntos:")
-            self.label_metodo_interpolacion = QLabel("1-Que metodo de interpolacion deseas utilizar")
-            self.lineal = QCheckBox("Lineal")
-            self.cubica = QCheckBox("Cubica")
-            self.polinomica = QCheckBox("Polinomica de segundo orden")
+            self.input_n_puntos.setPlaceholderText("Enter the number of points:")
+            self.label_metodo_interpolacion = QLabel("1-Which interpolation method would you like to use?")
+            self.lineal = QCheckBox("Linear")
+            self.cubica = QCheckBox("Cubic")
+            self.polinomica = QCheckBox("Second-order polynomial")
             self.nearest = QCheckBox("Nearest")
 
             self.layout_interpolacion_low.addWidget(self.interpolar_n_puntos)
@@ -2911,29 +2780,29 @@ class VentanaGraficoDataFusion(QWidget):
         ############### MID FUSION LEVEL ###########
         self.opciones_interpolacion_mid = QVBoxLayout()
         self.midfusion.stateChanged.connect(self.toggle_midfusion)
-        if interseccion: # SI HAY INTERSECCION
-            self.rango_comun_mid = QCheckBox("Interpolamos solo en el rango comun")
-            self.rango_completo_mid = QCheckBox("Interpolamos en todo el rango combinado")
+        if interseccion: # IF THERE IS AN INTERSECTION
+            self.rango_comun_mid = QCheckBox("Interpolate only within the common range")
+            self.rango_completo_mid = QCheckBox("Interpolate over the full combined range")
             self.rango_comun_mid.stateChanged.connect(self.mostrar_opciones_interpolacion_mid)
             self.rango_completo_mid.stateChanged.connect(self.mostrar_opciones_interpolacion_mid)
             self.opciones_interpolacion_mid.addWidget(self.rango_comun_mid)
             self.opciones_interpolacion_mid.addWidget(self.rango_completo_mid)
 
-        else:# SI NO HAY INTERSECCION
-            self.interpolar_n_puntos_mid = QLabel("No hay rango comun por lo que se interpolara sobre un eje X común artificial (N puntos)")
+        else: # IF THERE IS NO INTERSECTION
+            self.interpolar_n_puntos_mid = QLabel("There is no common range, so interpolation will be performed over an artificial common X-axis (N points)")
             self.input_n_puntos_mid = QLineEdit()
-            self.input_n_puntos_mid.setPlaceholderText("1-Ingrese cantidad de puntos:")
-            self.label_metodo_interpolacion_mid = QLabel("2-Que metodo de interpolacion deseas utilizar")
-            self.lineal_mid = QCheckBox("Lineal")
-            self.cubica_mid = QCheckBox("Cubica")
-            self.polinomica_mid = QCheckBox("Polinomica de segundo orden")
-            self.nearest_mid = QCheckBox("Nearest")   
-            self.n_componentes_label = QLabel("3-Ingrese la Cantidad de Componentes Principales")
+            self.input_n_puntos_mid.setPlaceholderText("1-Enter the number of points:")
+            self.label_metodo_interpolacion_mid = QLabel("2-Which interpolation method would you like to use?")
+            self.lineal_mid = QCheckBox("Linear")
+            self.cubica_mid = QCheckBox("Cubic")
+            self.polinomica_mid = QCheckBox("Second-order polynomial")
+            self.nearest_mid = QCheckBox("Nearest")
+            self.n_componentes_label = QLabel("3-Enter the number of principal components")
             self.n_componentes = QLineEdit()
-            self.n_componentes.setPlaceholderText("Ejemplo: 3")
-            self.intervalo_confianza_label = QLabel("4-Ingrese el Intervalo de Confianza % :")
+            self.n_componentes.setPlaceholderText("Example: 3")
+            self.intervalo_confianza_label = QLabel("4-Enter the confidence interval %:")
             self.intervalo_confianza = QLineEdit()
-            self.intervalo_confianza.setPlaceholderText("Ejemplo: 95")      
+            self.intervalo_confianza.setPlaceholderText("Example: 95")     
             self.opciones_interpolacion_mid.addWidget(self.interpolar_n_puntos_mid)
             self.opciones_interpolacion_mid.addWidget(self.input_n_puntos_mid)
             self.opciones_interpolacion_mid.addWidget(self.label_metodo_interpolacion_mid)
@@ -2950,15 +2819,15 @@ class VentanaGraficoDataFusion(QWidget):
         self.contenedor_midf = QWidget()
         layout_mf = QVBoxLayout()
         layout_mf.addLayout(self.opciones_interpolacion_mid)
-        self.contenedor_midf.setLayout(layout_mf) #"Este contenedor (QWidget) ahora tiene como contenido el layout layout_lf con sus widgets internos"
-        self.contenedor_midf.hide()  # Ocultamos todo el contenedor
+        self.contenedor_midf.setLayout(layout_mf) # "This container (QWidget) now contains the layout_lf layout with its internal widgets"
+        self.contenedor_midf.hide()  
 
-        # Crear layout de botones
+        # Create button layout
         botones_layout = QHBoxLayout()
-        btn_graficar = QPushButton("Graficar Mid-Level")
-        btn_graficar_low = QPushButton("Graficar Low-Level")  # completar 
-        btn_aceptar = QPushButton("Aceptar")
-        btn_cancelar = QPushButton("Cancelar")
+        btn_graficar = QPushButton("Plot Mid-Level")
+        btn_graficar_low = QPushButton("Plot Low-Level")  # to be completed
+        btn_aceptar = QPushButton("Accept")
+        btn_cancelar = QPushButton("Cancel")
         btn_cancelar.clicked.connect(self.close)
         btn_graficar_low.setStyleSheet("""
         QPushButton {
@@ -2972,19 +2841,13 @@ class VentanaGraficoDataFusion(QWidget):
                 background-color: #f39c12;
             }
         """)
-        
-        # Lógica para determinar qué función ejecutar al hacer clic en "Aceptar"
         def ejecutar_fusion():
             if self.lowfusion.isChecked():
                 self.aplicar_fusion()
-                #self.menu_principal.ver_espectros(VerDf)
-                #self.pedir_pc_para_graficar() # ESTE SE EJECUTA CUANDO EL USUARIO TERMINA DE INTERPOLAR PARA QUE MUESTRE UNA VENTANA DONDE PEDIRA AL USUARIO QUE INGRESE LOS NUMERO DE PCA QUE DESEA GRAFICAR
             elif self.midfusion.isChecked():
                 self.aplicar_fusion_mid()
-                #self.menu_principal.ver_espectros(VerDf)
-                #self.pedir_pc_para_graficar() # ESTE SE EJECUTA CUANDO EL USUARIO TERMINA DE INTERPOLAR PARA QUE MUESTRE UNA VENTANA DONDE PEDIRA AL USUARIO QUE INGRESE LOS NUMERO DE PCA QUE DESEA GRAFICAR
             else:
-                QMessageBox.warning(self, "Advertencia", "Debe seleccionar al menos una opción de fusión.")
+                QMessageBox.warning(self, "Warning", "You must select at least one fusion option.")
 
         btn_aceptar.clicked.connect(ejecutar_fusion)
         btn_graficar.clicked.connect(self.pedir_pc_para_graficar)
@@ -3011,37 +2874,40 @@ class VentanaGraficoDataFusion(QWidget):
         botones_layout.addWidget(btn_graficar_low)
         botones_layout.addWidget(btn_graficar)
         
-        # IMPORTANTE: conectar DESPUÉS de crear contenedores
         self.lowfusion.stateChanged.connect(self.toggle_lowfusion)
 
-        # Añadir al layout principal
+        # Add to the main layout
         layout_principal.addLayout(datafusion_layout_lf)
-        layout_principal.addWidget(self.gb_concat)          # oculto por defecto
-        layout_principal.addWidget(self.contenedor_lowf)    # ⬅️ YA NO LO DEJES COMENTADO
+        layout_principal.addWidget(self.gb_concat)          # hidden by default
+        layout_principal.addWidget(self.contenedor_lowf)    
         layout_principal.addLayout(datafusion_layout_mf)
         layout_principal.addWidget(self.contenedor_midf)
         layout_principal.addLayout(botones_layout)
 
-        # Sincronizar estado inicial
+        # Synchronize initial state
         self.toggle_lowfusion(self.lowfusion.isChecked())
 
 
         self.setLayout(layout_principal)
 
 
-    def pedir_pc_para_graficar(self): #PARA GRAFICAR LOS PC DESEADOS
+    def pedir_pc_para_graficar(self):  # TO PLOT THE DESIRED PCs
         
-        texto, ok = QInputDialog.getText(self, "Componentes principales","Ingrese los números de PC que desea graficar separados por coma:\nEjemplo: 1,2,3")
+        texto, ok = QInputDialog.getText(
+            self,
+            "Principal Components",
+            "Enter the PC numbers you want to plot, separated by commas:\nExample: 1,2,3"
+        )
         
         if ok and texto:
-                pcs = [int(x.strip()) for x in texto.split(',') if x.strip().isdigit()] # Convertimos el texto ingresado en una lista de enteros
-                if pcs:
-                    print(f"[INFO] Usuario desea graficar los PCs: {pcs}")
-                    self.graficar_componentes_principales(pcs)
-                else:
-                    QMessageBox.warning(self, "Entrada inválida", "No se ingresaron valores válidos.")
-
-        
+            pcs = [int(x.strip()) for x in texto.split(',') if x.strip().isdigit()]  # Convert the entered text into a list of integers
+            if pcs:
+                print(f"[INFO] The user wants to plot the following PCs: {pcs}")
+                self.graficar_componentes_principales(pcs)
+            else:
+                QMessageBox.warning(self, "Invalid input", "No valid values were entered.")
+    
+           
     def mostrar_dialogo_pc(self):
         self.pedir_pc_para_graficar()
    
@@ -3050,7 +2916,7 @@ class VentanaGraficoDataFusion(QWidget):
         visible = bool(state)
         self.contenedor_interpolacion_low.setVisible(visible)
         if not visible:
-            # Opcional: resetear selección cuando se oculta
+            # Optional: reset the selection when hidden
             if hasattr(self, "rango_comun"): self.rango_comun.setChecked(False)
             if hasattr(self, "rango_completo"): self.rango_completo.setChecked(False)
             if hasattr(self, "input_n_puntos"): self.input_n_puntos.clear()
@@ -3062,11 +2928,11 @@ class VentanaGraficoDataFusion(QWidget):
 
     def aplicar_fusion_mid(self,estado=None):
         if not self.midfusion.isChecked():
-            QMessageBox.warning(self, "Aviso", "Debe activar 'Mid Level Fusion' para continuar.")
+            QMessageBox.warning(self, "Notice", "You must enable 'Mid-Level Fusion' to continue.")
             return
 
         if self.interseccion:
-            self.mostrar_opciones_interpolacionconinterseccion_mid() # ACA FALTA AGREGAR UNA FORMA DE DIFERENCIA SI ES CON LA OBCION DE RANGO COMPLETO O SI ES SOLO DE LA INTERSECCION
+            self.mostrar_opciones_interpolacionconinterseccion_mid() 
         else:
             self.mostrar_opciones_interpolacionsinintersecctar_mid()
 
@@ -3075,11 +2941,11 @@ class VentanaGraficoDataFusion(QWidget):
 
     def aplicar_fusion(self,estado=None):
         if not self.lowfusion.isChecked():
-            QMessageBox.warning(self, "Aviso", "Debe activar 'Low Level Fusion' para continuar.")
+            QMessageBox.warning(self, "Notice", "You must enable 'Low-Level Fusion' to continue.")
             return
 
         if self.interseccion:
-            self.mostrar_opciones_interpolacionconinterseccion() # ACA FALTA AGREGAR UNA FORMA DE DIFERENCIA SI ES CON LA OBCION DE RANGO COMPLETO O SI ES SOLO DE LA INTERSECCION
+            self.mostrar_opciones_interpolacionconinterseccion() 
         else:
             self.mostrar_opciones_interpolacionsinintersecctar()
 
@@ -3092,161 +2958,175 @@ class VentanaGraficoDataFusion(QWidget):
             self.gb_concat.setVisible(visible)
 
     def toggle_midfusion(self, state):
-        print(f"Estado del checkbox MidFusion: {state}")
         self.contenedor_midf.setVisible(bool(state))
 
 
     def mostrar_opciones_interpolacion(self, estado):
         if estado in (Qt.Checked, 2):
-            # crear el panel solo una vez
+            # create the panel only once
             if not hasattr(self, "panel_dinamico_low"):
                 self.panel_dinamico_low = QWidget()
                 lay = QVBoxLayout(self.panel_dinamico_low)
 
-                self.label_metodo_interpolacion = QLabel("1-Qué método de interpolación deseas utilizar")
-                self.lineal = QCheckBox("Lineal")
-                self.cubica = QCheckBox("Cúbica")
-                self.polinomica = QCheckBox("Polinómica de segundo orden")
+                self.label_metodo_interpolacion = QLabel("1-Which interpolation method would you like to use?")
+                self.lineal = QCheckBox("Linear")
+                self.cubica = QCheckBox("Cubic")
+                self.polinomica = QCheckBox("Second-order polynomial")
                 self.nearest = QCheckBox("Nearest")
 
-                self.label_forma_paso = QLabel("2-¿Cómo deseas hallar el paso?")
-                self.valor = QCheckBox("Ingresar valor del paso")
-                self.input_paso = QLineEdit(); self.input_paso.setPlaceholderText("Ingrese el valor del paso")
-                self.promedio = QCheckBox("Promedio de los archivos")
-                self.numero = QCheckBox("Definir un número fijo de puntos")
-                self.input_n_puntos = QLineEdit(); self.input_n_puntos.setPlaceholderText("Ingrese cantidad de puntos")
+                self.label_forma_paso = QLabel("2-How would you like to determine the step?")
+                self.valor = QCheckBox("Enter step value")
+                self.input_paso = QLineEdit(); self.input_paso.setPlaceholderText("Enter the step value")
+                self.promedio = QCheckBox("Average of the files")
+                self.numero = QCheckBox("Define a fixed number of points")
+                self.input_n_puntos = QLineEdit(); self.input_n_puntos.setPlaceholderText("Enter the number of points")
 
                 for w in (self.label_metodo_interpolacion, self.lineal, self.cubica, self.polinomica, self.nearest,
                         self.label_forma_paso, self.valor, self.input_paso, self.promedio, self.numero, self.input_n_puntos):
                     lay.addWidget(w)
 
-                # agregar al contenedor visible correcto
+                # add it to the correct visible container
                 self.layout_interpolacion_low.addWidget(self.panel_dinamico_low)
 
             self.panel_dinamico_low.show()
         else:
             if hasattr(self, "panel_dinamico_low"):
-                # ocultar si se desmarca y ninguna de las dos está marcada
+                # hide it if unchecked and neither option is selected
                 if (hasattr(self, "rango_comun") and not self.rango_comun.isChecked()) and \
                 (hasattr(self, "rango_completo") and not self.rango_completo.isChecked()):
                     self.panel_dinamico_low.hide()
 
 
 
-    def mostrar_opciones_interpolacion_mid(self, estado): # PARA QUE ME MUESTRE EL CHIECKBOX DE LOS METODOS DE INTERPOLACION AL DAR CLICK
+    def mostrar_opciones_interpolacion_mid(self, estado):  # TO DISPLAY THE INTERPOLATION METHOD CHECKBOXES WHEN CLICKED
         if estado in [Qt.Checked, 2]:
             if not hasattr(self, 'contenedor_opciones_dinamicas_mid'):
                 self.contenedor_opciones_dinamicas_mid = QWidget()
                 layout_dinamico_mid = QVBoxLayout()
-                self.label_metodo_interpolacion_mid = QLabel("1-Que metodo de interpolacion deseas utilizar")
-                self.lineal_mid = QCheckBox("Lineal")
-                self.cubica_mid = QCheckBox("Cubica")
-                self.polinomica_mid = QCheckBox("Polinomica de segundo orden")
+                self.label_metodo_interpolacion_mid = QLabel("1-Which interpolation method would you like to use?")
+                self.lineal_mid = QCheckBox("Linear")
+                self.cubica_mid = QCheckBox("Cubic")
+                self.polinomica_mid = QCheckBox("Second-order polynomial")
                 self.nearest_mid = QCheckBox("Nearest")
-                self.label_forma_paso_mid = QLabel("2-Como deseas hallar el paso?")
-                self.valor_mid = QCheckBox("Ingrese el valor del paso")
+                self.label_forma_paso_mid = QLabel("2-How would you like to determine the step?")
+                self.valor_mid = QCheckBox("Enter the step value")
                 self.input_paso_mid = QLineEdit()
-                self.input_paso_mid.setPlaceholderText("Ingrese el valor del paso:")
-                self.promedio_mid = QCheckBox("Calcular el promedio de los archivos")
-                self.numero_mid = QCheckBox("Definir un numero fijo de puntos")
+                self.input_paso_mid.setPlaceholderText("Enter the step value:")
+                self.promedio_mid = QCheckBox("Calculate the average of the files")
+                self.numero_mid = QCheckBox("Define a fixed number of points")
                 self.input_n_puntos_mid = QLineEdit()
-                self.input_n_puntos_mid.setPlaceholderText("Ingrese cantidad de puntos:")
-                self.n_componentes_label = QLabel("3-Ingrese la Cantidad de Componentes Principales")
+                self.input_n_puntos_mid.setPlaceholderText("Enter the number of points:")
+                self.n_componentes_label = QLabel("3-Enter the number of principal components")
                 self.n_componentes = QLineEdit()
-                self.n_componentes.setPlaceholderText("Ejemplo: 3")
-                self.intervalo_confianza_label = QLabel("4-Ingrese el Intervalo de Confianza % :")
+                self.n_componentes.setPlaceholderText("Example: 3")
+                self.intervalo_confianza_label = QLabel("4-Enter the confidence interval %:")
                 self.intervalo_confianza = QLineEdit()
-                self.intervalo_confianza.setPlaceholderText("Ejemplo: 95") 
-                layout_dinamico_mid.addWidget(self.label_metodo_interpolacion_mid )
-                layout_dinamico_mid.addWidget(self.lineal_mid )
-                layout_dinamico_mid.addWidget(self.cubica_mid )
-                layout_dinamico_mid.addWidget(self.polinomica_mid )
-                layout_dinamico_mid.addWidget(self.nearest_mid )
-                layout_dinamico_mid.addWidget(self.label_forma_paso_mid )
-                layout_dinamico_mid.addWidget(self.valor_mid )
-                layout_dinamico_mid.addWidget(self.input_paso_mid )
-                layout_dinamico_mid.addWidget(self.promedio_mid )
-                layout_dinamico_mid.addWidget(self.numero_mid )
-                layout_dinamico_mid.addWidget(self.input_n_puntos_mid )
+                self.intervalo_confianza.setPlaceholderText("Example: 95")
+                layout_dinamico_mid.addWidget(self.label_metodo_interpolacion_mid)
+                layout_dinamico_mid.addWidget(self.lineal_mid)
+                layout_dinamico_mid.addWidget(self.cubica_mid)
+                layout_dinamico_mid.addWidget(self.polinomica_mid)
+                layout_dinamico_mid.addWidget(self.nearest_mid)
+                layout_dinamico_mid.addWidget(self.label_forma_paso_mid)
+                layout_dinamico_mid.addWidget(self.valor_mid)
+                layout_dinamico_mid.addWidget(self.input_paso_mid)
+                layout_dinamico_mid.addWidget(self.promedio_mid)
+                layout_dinamico_mid.addWidget(self.numero_mid)
+                layout_dinamico_mid.addWidget(self.input_n_puntos_mid)
                 layout_dinamico_mid.addWidget(self.n_componentes_label)
                 layout_dinamico_mid.addWidget(self.n_componentes)
                 layout_dinamico_mid.addWidget(self.intervalo_confianza_label)
                 layout_dinamico_mid.addWidget(self.intervalo_confianza)
-                
+
                 self.contenedor_opciones_dinamicas_mid.setLayout(layout_dinamico_mid)
                 self.opciones_interpolacion_mid.addWidget(self.contenedor_opciones_dinamicas_mid)
                 self.contenedor_opciones_dinamicas_mid.setVisible(True)
             else:
                 self.contenedor_opciones_dinamicas_mid.setVisible(True)
         else:
-            if hasattr(self, 'contenedor_opciones_dinamicas_mid'):  # USAMOS Porque queremos crear los widgets dinámicos solo una vez, y luego solo mostrar/ocultar sin volver a agregarlos al layout.
+            if hasattr(self, 'contenedor_opciones_dinamicas_mid'):  # WE USE THIS BECAUSE WE WANT TO CREATE THE DYNAMIC WIDGETS ONLY ONCE, AND THEN JUST SHOW/HIDE THEM WITHOUT ADDING THEM TO THE LAYOUT AGAIN.
                 self.contenedor_opciones_dinamicas_mid.setVisible(False)
 
 
     def mostrar_opciones_interpolacionconinterseccion(self):   
         if self.interpolarsi.isChecked():
-            opcion_rango_completo = self.rango_completo.isChecked() # PARA TENER TRUE O FALSE ACORDE A CUAL DE LAS DOS OPCIONES MARCO EL USUARIO
+            opcion_rango_completo = self.rango_completo.isChecked()  # TO GET TRUE OR FALSE DEPENDING ON WHICH OF THE TWO OPTIONS THE USER SELECTED
             opcion_rango_comun = self.rango_comun.isChecked()
             valor_paso = self.input_paso.text().strip()
             n_puntos = self.input_n_puntos.text().strip()
             opciones_metodo = {}
                         
             if self.lineal.isChecked():
-                opciones_metodo["Lineal"] = True 
+                opciones_metodo["Lineal"] = True
             if self.cubica.isChecked():
-                opciones_metodo["Cubica"] = True   
+                opciones_metodo["Cubica"] = True
             if self.polinomica.isChecked():
-                opciones_metodo["Polinomica de segundo orden"] = True 
+                opciones_metodo["Polinomica de segundo orden"] = True
             if self.nearest.isChecked():
-                opciones_metodo["Nearest"] = True   
+                opciones_metodo["Nearest"] = True
 
             opciones_paso = {}
                     
             if self.valor.isChecked():
-                opciones_paso["Ingrese el valor del paso"] = True 
+                opciones_paso["Ingrese el valor del paso"] = True
             if self.numero.isChecked():
-                opciones_paso["Ingrese cantidad de puntos:"] = True   
+                opciones_paso["Ingrese cantidad de puntos:"] = True
             if self.promedio.isChecked():
-                opciones_paso["Calcular el promedio de los archivos"] = True 
+                opciones_paso["Calcular el promedio de los archivos"] = True
             
-            print("self.seleccionados dentro del main")
+            print("self.seleccionados inside main")
             print(self.seleccionados)
             interpolar = True
         else:
-            # Si NO se marcó "Interpolar", asignamos valores por defecto o None
+            # If "Interpolate" was NOT checked, assign default values or None
             opcion_rango_completo = False
             opcion_rango_comun = False
             valor_paso = ""
             n_puntos = ""
-            opciones_metodo = {}     # sin métodos de interpolación
-            opciones_paso = {}       # sin paso definido
+            opciones_metodo = {}     # no interpolation methods
+            opciones_paso = {}       # no step definition
             interpolar = False
             
-        # Detectar si se seleccionó horizontal o vertical
+        # Detect whether horizontal or vertical was selected
         if self.rb_concat_h.isChecked():
             modo_concat = "horizontal"
         elif self.rb_concat_v.isChecked():
             modo_concat = "vertical"
         else:
-            modo_concat = None  # o algún valor por defecto
+            modo_concat = None  # or some default value
 
-        print("ORIENTACION DE LA CONCATENACION: ", modo_concat)
+        print("CONCATENATION ORIENTATION: ", modo_concat)
         
-        # PARA SABER SI EL USUARIO DIO CHECK O NO A BOX DE INTERPOLAR
+        # TO CHECK WHETHER THE USER SELECTED THE INTERPOLATE BOX OR NOT
         if self.interpolarsi.isChecked():
-            print("✅ El usuario marcó 'Interpolar'")
+            print("✅ The user selected 'Interpolate'")
         else:
-            print("❌ El usuario NO marcó 'Interpolar'")
+            print("❌ The user did NOT select 'Interpolate'")
 
         
-        # VER COMO HACER LOS DEL HILO DE ACA ABAJO
-        self.hilo = HiloDataLowFusion(self.seleccionados,self.nombres_seleccionados,self.lista_rangos,self.interseccion,self.rang_comun,opcion_rango_completo,opcion_rango_comun, opciones_metodo, opciones_paso,valor_paso, n_puntos,self.tipos_orden,modo_concat,interpolar)
+        # SEE HOW TO HANDLE THE THREAD CODE BELOW
+        self.hilo = HiloDataLowFusion(
+            self.seleccionados,
+            self.nombres_seleccionados,
+            self.lista_rangos,
+            self.interseccion,
+            self.rang_comun,
+            opcion_rango_completo,
+            opcion_rango_comun,
+            opciones_metodo,
+            opciones_paso,
+            valor_paso,
+            n_puntos,
+            self.tipos_orden,
+            modo_concat,
+            interpolar
+        )
         self.hilo.signal_datalowfusion.connect(self.lowfusionfinal)
         self.hilo.start()
-        
+            
         
     def mostrar_opciones_interpolacionconinterseccion_mid(self):   
-        opcion_rango_completo_mid = self.rango_completo_mid.isChecked() # PARA TENER TRUE O FALSE ACORDE A CUAL DE LAS DOS OPCIONES MARCO EL USUARIO
+        opcion_rango_completo_mid = self.rango_completo_mid.isChecked() # TO GET TRUE OR FALSE DEPENDING ON WHICH OF THE TWO OPTIONS THE USER SELECTED
         opcion_rango_comun_mid = self.rango_comun_mid.isChecked()
         valor_paso_mid = self.input_paso_mid.text().strip()
         n_puntos_mid = self.input_n_puntos_mid.text().strip()
@@ -3292,8 +3172,6 @@ class VentanaGraficoDataFusion(QWidget):
         if self.nearest.isChecked():
             opciones_metodo["Nearest"] = True   
 
-
-        # VER COMO HACER LOS DEL HILO DE ACA ABAJO
         self.hilo = HiloDataLowFusionSinRangoComun(self.seleccionados,self.nombres_seleccionados,self.lista_rangos, n_puntos,opciones_metodo,self.tipos_orden)
         self.hilo.signal_datalowfusionsininterseccion.connect(self.lowfusionfinalsininterseccion)
         self.hilo.start()
@@ -3319,57 +3197,57 @@ class VentanaGraficoDataFusion(QWidget):
         self.hilo.signal_datamidfusionsininterseccion.connect(self.midfusionfinalsininterseccion)
         self.hilo.start()
             
-    #Solicitamos al usuario un nombre para guardar el DataFrame transformado
+    # Ask the user for a name to save the transformed DataFrame
     def lowfusionfinal(self, df_concat):
         self.df_concat_midfusion = df_concat
-        nombre_df, ok = QInputDialog.getText(self, "Guardar DataFrame", "Ingrese un nombre para el DataFrame transformado:")
+        nombre_df, ok = QInputDialog.getText(self, "Save DataFrame", "Enter a name for the transformed DataFrame:")
         if ok and nombre_df.strip():
             nombre_limpio = nombre_df.strip()
             self.menu_principal.dataframes.append(df_concat)
             self.menu_principal.nombres_archivos.append(nombre_limpio)
             ruta = os.path.join("archivos_guardados", f"{nombre_limpio}.csv")
-            os.makedirs("archivos_guardados", exist_ok=True)  # crea carpeta si no existe
+            os.makedirs("archivos_guardados", exist_ok=True)  # create folder if it does not exist
             df_concat.to_csv(ruta, index=False)
-            QMessageBox.information(self, "Éxito", f"DataFrame transformado guardado como '{nombre_limpio}' y exportado a CSV.")
+            QMessageBox.information(self, "Success", f"Transformed DataFrame saved as '{nombre_limpio}' and exported to CSV.")
     
-    def midfusionfinal(self, df_concat , lista_varianza):
+    def midfusionfinal(self, df_concat, lista_varianza):
         self.df_concat_midfusion = df_concat
         self.lista_varianza = lista_varianza
-        nombre_df, ok = QInputDialog.getText(self, "Guardar DataFrame", "Ingrese un nombre para el DataFrame transformado:")
+        nombre_df, ok = QInputDialog.getText(self, "Save DataFrame", "Enter a name for the transformed DataFrame:")
         if ok and nombre_df.strip():
             nombre_limpio = nombre_df.strip()
-            self.menu_principal.dataframes.append(df_concat) # Guardamos en listas internas
+            self.menu_principal.dataframes.append(df_concat)  # Store in internal lists
             self.menu_principal.nombres_archivos.append(nombre_limpio)
             ruta = os.path.join("archivos_guardados", f"{nombre_limpio}.csv")
-            os.makedirs("archivos_guardados", exist_ok=True)  # creamos carpeta si no existe
+            os.makedirs("archivos_guardados", exist_ok=True)  # Create folder if it does not exist
             df_concat.to_csv(ruta, index=False)
-            QMessageBox.information(self, "Éxito", f"DataFrame transformado guardado como '{nombre_limpio}' y exportado a CSV.")
+            QMessageBox.information(self, "Success", f"Transformed DataFrame saved as '{nombre_limpio}' and exported to CSV.")
 
     def lowfusionfinalsininterseccion(self, df_concat):
         self.df_concat_midfusion = df_concat
-        nombre_df, ok = QInputDialog.getText(self, "Guardar DataFrame", "Ingrese un nombre para el DataFrame transformado:")
+        nombre_df, ok = QInputDialog.getText(self, "Save DataFrame", "Enter a name for the transformed DataFrame:")
         if ok and nombre_df.strip():
             nombre_limpio = nombre_df.strip()
             self.menu_principal.dataframes.append(df_concat)
             self.menu_principal.nombres_archivos.append(nombre_limpio)
             ruta = os.path.join("archivos_guardados", f"{nombre_limpio}.csv")
-            os.makedirs("archivos_guardados", exist_ok=True)  # creamos carpeta si no existe
+            os.makedirs("archivos_guardados", exist_ok=True)  # Create folder if it does not exist
             df_concat.to_csv(ruta, index=False)
-            QMessageBox.information(self, "Éxito", f"DataFrame transformado guardado como '{nombre_limpio}' y exportado a CSV.")
+            QMessageBox.information(self, "Success", f"Transformed DataFrame saved as '{nombre_limpio}' and exported to CSV.")
 
 
-    def midfusionfinalsininterseccion(self, df_concat , lista_varianza):
+    def midfusionfinalsininterseccion(self, df_concat, lista_varianza):
         self.df_concat_midfusion = df_concat
         self.lista_varianza = lista_varianza
-        nombre_df, ok = QInputDialog.getText(self, "Guardar DataFrame", "Ingrese un nombre para el DataFrame transformado:")
+        nombre_df, ok = QInputDialog.getText(self, "Save DataFrame", "Enter a name for the transformed DataFrame:")
         if ok and nombre_df.strip():
             nombre_limpio = nombre_df.strip()
             self.menu_principal.dataframes.append(df_concat)
             self.menu_principal.nombres_archivos.append(nombre_limpio)
             ruta = os.path.join("archivos_guardados", f"{nombre_limpio}.csv")
-            os.makedirs("archivos_guardados", exist_ok=True)  # creamos carpeta si no existe
+            os.makedirs("archivos_guardados", exist_ok=True)  # Create folder if it does not exist
             df_concat.to_csv(ruta, index=False)
-            QMessageBox.information(self, "Éxito", f"DataFrame transformado guardado como '{nombre_limpio}' y exportado a CSV.")
+            QMessageBox.information(self, "Success", f"Transformed DataFrame saved as '{nombre_limpio}' and exported to CSV.")
 
 
     def graficar_componentes_principales(self,pcs):
@@ -3395,8 +3273,8 @@ class VentanaGraficoDataFusion(QWidget):
 class VentanaGraficoMapaCalor(QMainWindow):
     def __init__(self, figura, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Mapa de Calor - Componentes Principales")
-        self.canvas = FigureCanvas(figura) # Crear el canvas de matplotlib
+        self.setWindowTitle("Heatmap - Principal Components")
+        self.canvas = FigureCanvas(figura) # Create the matplotlib canvas
         central_widget = QWidget()
         layout = QVBoxLayout()
         layout.addWidget(self.canvas)
@@ -3410,66 +3288,4 @@ if __name__ == "__main__":
     ventana = MenuPrincipal()
     ventana.show()
     sys.exit(app.exec())
-
-
-
-
-
-
-
-
-
-
-
-
-# ############### PROXIMA ACTIVIDAD
-# # EL HCA TIENE QUE SER CAPAZ DE MOSTRAR QUE MUESTRA REPRESENTA CADA NUMERO, POR EJEMPLO MI IDEA ACTURA ES  QUE CUANDO EL
-# # USUARIO PONGA SU CURSOR ENCIMA DE ESE NUMERO QUE MUESTRE EL TIPO DE DATO QUE REPRESENTA
-
-
-# # CALCULAR EL PORCENTAJE DE ACERTIVIDAD, POR EJEMPLO: VER SI FUE MEJOR EL LOW O MID(MID CREO QUE YA NO ABARCAREMOS MAS), VER SI  FUE CONVENIENTE 
-# # APLICAR ALGUN TIPO DE PROCESAMIENTO(PROCESAMIENTO == DERIVADA,SUAVIZADO ETC ETC ETC)
-
-
-# # EL LOW DE RANGO COMPLETO ESTA MAL
-
-# # VER SI LOW RANGO COMUN HACE O NO BIEN (SEGUN EDHER SI PERO VER DE VUELTA), EN TEORIA MIENTRAS MAS SEPARADO O AGRUPADOS ES MEJOR
-
-# # VER POR QUE AL HACER TSNE DE UN ARCHIVO LOW SIEMPRE ME DE VUELVE UN GRAFICO DE UN SOLO COLOR
-
-
-
-# EN MOSTRAR ESPECTRO HACER QUE APAREZCA LAS OPCIONES DEBAJO DE LOS CHECKBOX DE CADA OPCION QUE TENEMOS PARA GRAFICAR
-
-
-
-
-
-#################### Pendientes ##################################
-
-# ME PROCESA LOS DATOS PERO AL QUERER GRAFICARLE ME SALTA UN VENTANA DE ERROR, VER POR QUE PASA ESO, EL DATO CRUDO SI ME DEJA GRAFICARLO
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
