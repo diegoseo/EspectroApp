@@ -12,7 +12,7 @@ EspectroApp is written in **Python** and uses libraries such as **PySide6**, **N
 
 Clone the repository and install the required packages:
 
-```bash
+
 git clone https://github.com/diegoseo/EspectroApp.git
 cd EspectroApp
 pip install -r requirements.txt
@@ -249,7 +249,6 @@ Make sure the same processed DataFrame is being used for:
 ### 17.4 Missing dependencies
 Install all required packages with:
 
-```bash
 pip install -r requirements.txt
 
 ## 18. Recommended good practice
@@ -274,3 +273,5 @@ For support and questions, please visit the official GitHub repository:
 You may also contact the author through the support email:
 
 **diegoseo98@fpuna.edu.py**
+
+```bash
