@@ -22,6 +22,11 @@ EspectroApp was developed to integrate spectral preprocessing, low-level data fu
 - Interactive visualization of spectra and results
 - Export of plots and processed data
 
+## Development status
+
+The current version includes low-level data fusion as an available workflow.  
+A mid-level data fusion strategy has also been implemented, but it is still under testing and should currently be considered experimental.
+
 ## Technologies
 
 - Python
@@ -47,3 +52,5 @@ python3 src/main.py
 If python3 is not available in your system, try:
 
 python src/main.py
+
+For detailed instructions, see the [User Manual](USER_MANUAL.md).
