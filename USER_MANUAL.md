@@ -87,9 +87,13 @@ Processing
 Fusion
 - Data Fusion
 
+![Main interface](docs/images/main_menu.png)
+
 ## 8. Spectral preprocessing tools
 
 EspectroApp includes several preprocessing methods implemented in the transformation thread and helper functions. These methods may be applied before multivariate analysis.
+
+![Main interface](docs/images/preprocessing_menu.png)
 
 ### 8.1 Baseline correction
 
@@ -137,6 +141,8 @@ Regardless of the order in which preprocessing boxes are selected by the user, t
 
 EspectroApp can display:
 
+![Main interface](docs/images/spectral_visualization.png)
+
 - full spectra,
 - spectra in a selected range,
 - spectra by selected type,
@@ -145,6 +151,8 @@ EspectroApp can display:
 The plotting interface uses dynamic axis labels depending on whether the loaded file corresponds to Raman shift, wavenumber, or a generic X axis.
 
 ## 10. Dimensionality reduction
+
+![Main interface](docs/images/dimensionality_reduction.png)
 
 The dimensionality reduction panel allows the user to select:
 
@@ -194,6 +202,8 @@ EspectroApp provides:
 These methods can be used to explore nonlinear structures in spectral data after preprocessing.
 
 ## 13. Hierarchical Cluster Analysis (HCA)
+
+![Main interface](docs/images/hca_menu.png)
 
 The software includes hierarchical clustering tools for exploratory grouping of samples. HCA is exposed through the main menu and is part of the dimensional analysis workflow.
 
