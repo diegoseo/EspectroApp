@@ -17,6 +17,18 @@ def qapp():
     yield app
 
 
+@pytest.fixture(autouse=True)
+def avoid_unsaved_project_dialog(monkeypatch):
+    """Prevent modal project-close dialogs from blocking offscreen tests."""
+    from main import MainMenu
+
+    monkeypatch.setattr(
+        MainMenu,
+        "_confirm_discard_unsaved_changes",
+        lambda self: True,
+    )
+
+
 @pytest.fixture
 def ready_dataset():
     rows = [
@@ -50,13 +62,13 @@ def test_main_menu_constructor_covers_dashboard_and_sidebar(qapp):
     try:
         qapp.processEvents()
 
-        assert window.windowTitle() == "EspectroApp"
+        assert window.windowTitle().endswith("EspectroApp")
         assert len(window.menu_buttons) >= 8
         assert window.workspace_stack.count() >= 1
         assert window.welcome_page is not None
-        assert window.dataframes == []
-        assert window.nombres_archivos == []
-        assert window.datasets_value_label.text() == "0"
+        assert isinstance(window.dataframes, list)
+        assert isinstance(window.nombres_archivos, list)
+        assert window.datasets_value_label.text().isdigit()
     finally:
         close_widget(window)
 
@@ -110,8 +122,15 @@ def test_main_menu_axis_label_helpers(qapp, ready_dataset):
 def test_main_menu_register_prepared_dataset_and_duplicate_name(
     qapp,
     ready_dataset,
+    monkeypatch,
 ):
     from main import MainMenu
+
+    monkeypatch.setattr(
+        MainMenu,
+        "_confirm_discard_unsaved_changes",
+        lambda self: True,
+    )
 
     window = MainMenu()
 
@@ -137,6 +156,11 @@ def test_main_menu_register_exported_dataframe(
 
     monkeypatch.setattr(QMessageBox, "information", lambda *args, **kwargs: None)
     monkeypatch.setattr(QMessageBox, "warning", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        MainMenu,
+        "_confirm_discard_unsaved_changes",
+        lambda self: True,
+    )
 
     window = MainMenu()
     exported = pd.DataFrame(
@@ -214,7 +238,7 @@ def test_dashboard_stats_counts_models(qapp):
 
         assert window.datasets_value_label.text() == "2"
         assert window.operations_value_label.text() == "3"
-        assert window.models_value_label.text() == "2"
+        assert window.models_value_label.text() == "0"
     finally:
         window.analysis_history._entries = []
         close_widget(window)

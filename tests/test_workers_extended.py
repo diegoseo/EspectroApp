@@ -334,7 +334,15 @@ def test_dimensionality_worker_pca_branch(monkeypatch):
 
     monkeypatch.setattr(module, "assign_type_colors", lambda labels: {"A": "#000"})
     monkeypatch.setattr(module, "prepare_pca_matrix", lambda df: matrix)
-    monkeypatch.setattr(module, "pca", lambda x, n: (scores, variance))
+
+    fitted_model = object()
+
+    def fake_pca(x, n, return_model=False):
+        if return_model:
+            return scores, variance, fitted_model
+        return scores, variance
+
+    monkeypatch.setattr(module, "pca", fake_pca)
     monkeypatch.setattr(module, "plot_pca_2d", lambda *args: figure)
 
     worker = module.DimensionalityReductionThread(
@@ -350,9 +358,15 @@ def test_dimensionality_worker_pca_branch(monkeypatch):
         cant_componentes_loading=0,
     )
     emitted = capture(worker.pca_2d_figure_signal)
+    model_emitted = capture(worker.pca_model_signal)
     worker.run()
 
     assert emitted == [(figure,)]
+    assert len(model_emitted) == 1
+    payload = model_emitted[0][0]
+    assert payload["model"] is fitted_model
+    assert payload["n_features"] == matrix.shape[1]
+    assert payload["n_components"] == 2
     assert np.array_equal(worker.pca_resultado, scores)
     assert np.array_equal(worker.explained_variance_percentage, variance)
 

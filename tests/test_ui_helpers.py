@@ -39,22 +39,24 @@ def test_normalize_visual_dataframe_leaves_named_columns_unchanged():
     assert result is not source
 
 
-def test_data_preparation_clean_and_unique_helpers():
+def test_data_preparation_clean_and_internal_key_helpers():
     from ui.pages.data_preparation_page import DataPreparationAssistant
 
     assert DataPreparationAssistant.clean("  Aspirin  ", "Fallback") == "Aspirin"
     assert DataPreparationAssistant.clean(None, "Fallback") == "Fallback"
     assert DataPreparationAssistant.clean("   ", "Fallback") == "Fallback"
 
-    assert DataPreparationAssistant.make_unique(["A", "A", "B", "A"]) == [
-        "A",
-        "A_002",
-        "B",
-        "A_003",
+    assert DataPreparationAssistant.make_internal_sample_keys(
+        ["A", "A", "B", "A"]
+    ) == [
+        "A::1",
+        "A::2",
+        "B::1",
+        "A::3",
     ]
 
 
-def test_data_preparation_class_label_cleaning_modes():
+def test_data_preparation_sample_name_cleaning_modes():
     from ui.pages.data_preparation_page import DataPreparationAssistant
 
     values = ["A.1", "B_2", "C-3", "Plain"]
@@ -62,13 +64,13 @@ def test_data_preparation_class_label_cleaning_modes():
     assistant = DataPreparationAssistant.__new__(DataPreparationAssistant)
 
     assistant.suffix_treatment = _FakeComboBox("pandas")
-    pandas_clean, pandas_changed = assistant.clean_class_labels(values)
+    pandas_clean, pandas_changed = assistant.clean_sample_names(values)
 
     assistant.suffix_treatment = _FakeComboBox("numeric")
-    numeric_clean, numeric_changed = assistant.clean_class_labels(values)
+    numeric_clean, numeric_changed = assistant.clean_sample_names(values)
 
     assistant.suffix_treatment = _FakeComboBox("keep")
-    unchanged, unchanged_count = assistant.clean_class_labels(values)
+    unchanged, unchanged_count = assistant.clean_sample_names(values)
 
     assert pandas_clean == ["A", "B_2", "C-3", "Plain"]
     assert pandas_changed == 1

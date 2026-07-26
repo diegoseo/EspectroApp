@@ -302,8 +302,8 @@ def test_data_preparation_assistant_constructor_executes_detection_ui(
         assert page.prep.model() is None
         assert page.name.text().endswith("_prepared")
         assert page.save_button.isEnabled() is False
-        assert page.orientation.count() == 3
-        assert page.class_source.count() == 4
+        assert page.orientation.count() == 2
+        assert page.class_source.count() == 5
         assert page.missing.count() == 4
 
         page.invalidate_preview()
