@@ -1,0 +1,92 @@
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+venv.bak/
+env.bak/
+.venv_test/
+.venv_tst/
+.venv313/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build and distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+.installed.cfg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Logs
+*.log
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Tests and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Documentation builds
+docs/_build/
+site/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+tempCodeRunnerFile.py
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+~$*
+~lock*
+*.tmp
+*.bak
+requirements.txt~
+
+# Environment variables
+.env
+.envrc
+
+# Type checking and linting caches
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Local databases
+db.sqlite3
+db.sqlite3-journal
+
+# R session files
+.Rhistory
+.RData
+.Ruserdata
+
+# Local EspectroApp data
+EspectroApp_data/analysis_history.json
+EspectroApp_data/history*
+EspectroApp_data/pipelines/*
+!EspectroApp_data/pipelines/.gitkeep

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=EspectroApp
+Comment=Spectral data processing and multivariate analysis
+Exec=/opt/espectroapp/EspectroApp
+Icon=espectroapp
+Terminal=false
+Categories=Science;Education;
+StartupNotify=true

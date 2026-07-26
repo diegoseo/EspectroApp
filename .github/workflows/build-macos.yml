@@ -1,0 +1,51 @@
+name: Build EspectroApp for macOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Build macOS application
+        run: |
+          pyinstaller \
+            --noconfirm \
+            --clean \
+            --onedir \
+            --windowed \
+            --name EspectroApp \
+            --paths src \
+            --osx-bundle-identifier py.com.diegoseo.espectroapp \
+            --add-data "images:images" \
+            --add-data "src/icom:icom" \
+            --add-data "examples:examples" \
+            src/app.py
+
+      - name: Compress application
+        run: |
+          cd dist
+          ditto -c -k --sequesterRsrc --keepParent \
+            EspectroApp.app \
+            EspectroApp_macOS_v1.0.0.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EspectroApp-macOS-v1.0.0
+          path: dist/EspectroApp_macOS_v1.0.0.zip
